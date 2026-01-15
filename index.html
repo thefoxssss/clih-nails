@@ -3,653 +3,206 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clin Nails | St. George, UT</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Lato:wght@300;400;700&family=Great+Vibes&display=swap" rel="stylesheet">
-    
+    <title>RED BULL | Beyond Limits</title>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Montserrat:wght@300;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary-brown: #5A3528; /* Matches the dark brown in logo */
-            --primary-cream: #F5EBE0; /* Matches the background in logo */
-            --accent-gold: #C5A059;
-            --text-dark: #2D2420;
-            --text-light: #7D7068;
+            --rb-blue: #0b162f;
+            --rb-red: #cc1c4a;
+            --rb-yellow: #ffd300;
+            --glass: rgba(255, 255, 255, 0.1);
         }
+
+        * { box-sizing: border-box; }
 
         body {
-            font-family: 'Lato', sans-serif;
-            color: var(--text-dark);
-            background-color: var(--primary-cream);
-        }
-
-        h1, h2, h3, h4, h5, h6 {
-            font-family: 'Playfair Display', serif;
-        }
-
-        .script-font {
-            font-family: 'Great Vibes', cursive;
-        }
-
-        /* Smooth Scrolling */
-        html {
+            margin: 0;
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--rb-blue);
+            color: white;
             scroll-behavior: smooth;
         }
 
-        /* Custom Button Styles */
-        .btn-primary {
-            background-color: var(--primary-brown);
+        /* Hero Section with Video/Image Overlay */
+        .hero {
+            position: relative;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(to bottom, rgba(11, 22, 47, 0.4), var(--rb-blue)),
+                        url('https://images.unsplash.com/photo-1551698618-1fed5d975506?q=80&w=2070&auto=format&fit=crop'); /* Skiing/Extreme Sport */
+            background-size: cover;
+            background-position: center;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        .hero-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(3rem, 10vw, 8rem);
+            line-height: 0.9;
+            text-transform: uppercase;
+            margin: 0;
+            font-weight: 900;
+            letter-spacing: -2px;
+            animation: slideUp 1s ease-out;
+        }
+
+        .hero-subtitle {
+            font-size: 1.2rem;
+            letter-spacing: 5px;
+            color: var(--rb-yellow);
+            margin-bottom: 30px;
+            animation: fadeIn 2s ease-in;
+        }
+
+        /* Product Showcase */
+        .showcase {
+            padding: 100px 20px;
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+        }
+
+        .card {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.3s ease, border-color 0.3s;
+            text-align: center;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            border-color: var(--rb-yellow);
+        }
+
+        .can-img {
+            height: 250px;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));
+        }
+
+        /* Call to Action Button */
+        .btn {
+            display: inline-block;
+            background: var(--rb-red);
             color: white;
-            transition: all 0.3s ease;
-        }
-        .btn-primary:hover {
-            background-color: #3e241b;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(90, 53, 40, 0.3);
-        }
-
-        .btn-outline {
-            border: 2px solid var(--primary-brown);
-            color: var(--primary-brown);
-            transition: all 0.3s ease;
-        }
-        .btn-outline:hover {
-            background-color: var(--primary-brown);
-            color: white;
+            padding: 18px 45px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 900;
+            text-transform: uppercase;
+            transition: all 0.3s;
+            border: 2px solid transparent;
         }
 
-        /* Custom Date Picker Styling */
-        input[type="date"], input[type="time"], select {
-            border-color: #e5e7eb;
-            outline: none;
-        }
-        input[type="date"]:focus, input[type="time"]:focus, select:focus {
-            border-color: var(--primary-brown);
-            ring: 2px solid var(--primary-brown);
+        .btn:hover {
+            background: transparent;
+            border-color: var(--rb-red);
+            box-shadow: 0 0 20px var(--rb-red);
         }
 
-        /* Fade In Animation */
-        .fade-in {
-            opacity: 0;
-            transform: translateY(20px);
-            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
-        }
-        .fade-in.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        /* Highlight Animation for Sections */
-        @keyframes highlight-pulse {
-            0% { box-shadow: 0 0 0 0 rgba(197, 160, 89, 0.7); }
-            70% { box-shadow: 0 0 0 20px rgba(197, 160, 89, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(197, 160, 89, 0); }
-        }
-        .highlight-section {
-            animation: highlight-pulse 1.5s ease-out;
+        /* Featured Event Section */
+        .event-feature {
+            background: url('https://images.unsplash.com/photo-1533560235473-99b9780e78c3?q=80&w=2070&auto=format&fit=crop') center/cover;
+            height: 400px;
+            border-radius: 30px;
+            margin: 50px 20px;
+            display: flex;
+            align-items: flex-end;
+            padding: 40px;
         }
 
-        /* Logo SVG Animation */
-        .logo-svg path {
-            fill: var(--primary-brown);
+        .event-label {
+            background: var(--rb-yellow);
+            color: black;
+            padding: 5px 15px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: inline-block;
         }
-        
-        /* Mobile Menu */
-        #mobile-menu {
-            transition: transform 0.3s ease-in-out;
-            transform: translateX(100%);
+
+        /* Animations */
+        @keyframes slideUp {
+            from { transform: translateY(100px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
-        #mobile-menu.open {
-            transform: translateX(0);
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        footer {
+            text-align: center;
+            padding: 50px;
+            opacity: 0.6;
+            font-size: 0.8rem;
         }
     </style>
 </head>
-<body class="overflow-x-hidden">
+<body>
 
-    <!-- Navigation -->
-    <nav class="fixed w-full z-50 bg-[#F5EBE0]/95 backdrop-blur-sm border-b border-[#5A3528]/10 shadow-sm transition-all duration-300" id="navbar">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-20">
-                <!-- Logo Recreation -->
-                <div class="flex-shrink-0 flex items-center cursor-pointer" onclick="window.scrollTo(0,0)">
-                    <svg class="h-12 w-auto logo-svg" viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg">
-                        <!-- Artistic representation of "Clin Nails" based on user upload -->
-                        <text x="10" y="55" font-family="'Great Vibes', cursive" font-size="60" fill="#5A3528">Clin</text>
-                        <text x="100" y="55" font-family="'Great Vibes', cursive" font-size="60" fill="#5A3528">Nails</text>
-                        <!-- Stylized Nail Polish Icon -->
-                        <path d="M150,10 L165,10 L160,30 L155,30 Z" fill="#5A3528" transform="rotate(15, 160, 20)"/>
-                        <rect x="150" y="32" width="20" height="25" rx="3" fill="#5A3528" transform="rotate(15, 160, 45)"/>
-                    </svg>
-                </div>
-
-                <!-- Desktop Menu -->
-                <div class="hidden md:flex space-x-8 items-center">
-                    <a href="#home" class="text-[#5A3528] hover:text-[#C5A059] font-medium transition-colors">Home</a>
-                    <a href="#services" class="text-[#5A3528] hover:text-[#C5A059] font-medium transition-colors">Services</a>
-                    <a href="#gallery" class="text-[#5A3528] hover:text-[#C5A059] font-medium transition-colors">Gallery</a>
-                    <a href="#about" class="text-[#5A3528] hover:text-[#C5A059] font-medium transition-colors">About</a>
-                    <a href="#contact" class="text-[#5A3528] hover:text-[#C5A059] font-medium transition-colors">Contact</a>
-                    <a href="#book" class="btn-primary px-6 py-2 rounded-full font-medium">Book Now</a>
-                </div>
-
-                <!-- Mobile Menu Button -->
-                <div class="md:hidden flex items-center">
-                    <button id="mobile-menu-btn" class="text-[#5A3528] hover:text-[#3e241b] focus:outline-none">
-                        <i class="fas fa-bars text-2xl"></i>
-                    </button>
-                </div>
-            </div>
+    <section class="hero">
+        <div class="hero-content">
+            <p class="hero-subtitle">VITALIZES BODY AND MIND.</p>
+            <h1 class="hero-title">GIVES YOU<br><span style="color: var(--rb-yellow);">WINGS.</span></h1>
+            <br><br>
+            <a href="#explore" class="btn">Shop Editions</a>
         </div>
+    </section>
 
-        <!-- Mobile Menu Panel -->
-        <div id="mobile-menu" class="fixed top-0 right-0 h-full w-64 bg-[#F5EBE0] shadow-2xl z-50 flex flex-col pt-20 px-6 space-y-6">
-            <button id="close-menu-btn" class="absolute top-6 right-6 text-[#5A3528] text-2xl">
-                <i class="fas fa-times"></i>
-            </button>
-            <a href="#home" class="mobile-link text-xl font-serif text-[#5A3528]">Home</a>
-            <a href="#services" class="mobile-link text-xl font-serif text-[#5A3528]">Services</a>
-            <a href="#gallery" class="mobile-link text-xl font-serif text-[#5A3528]">Gallery</a>
-            <a href="#about" class="mobile-link text-xl font-serif text-[#5A3528]">About</a>
-            <a href="#contact" class="mobile-link text-xl font-serif text-[#5A3528]">Contact</a>
-            <a href="#book" class="mobile-link btn-primary text-center py-3 rounded-lg mt-4">Book Appointment</a>
+    <section class="showcase" id="explore">
+        <div class="section-header">
+            <h2>THE EDITIONS</h2>
+            <p>Same energy, legendary flavors.</p>
         </div>
-    </nav>
-
-    <!-- Hero Section -->
-    <section id="home" class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
-        <div class="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-[#E8DCCF] rounded-full opacity-50 blur-3xl"></div>
-        <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-72 h-72 bg-[#C5A059] rounded-full opacity-20 blur-3xl"></div>
         
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <div class="lg:grid lg:grid-cols-2 lg:gap-16 items-center">
-                <div class="mb-12 lg:mb-0 fade-in">
-                    <span class="text-[#C5A059] font-bold tracking-widest uppercase text-sm mb-2 block">Welcome to St. George's Finest</span>
-                    <h1 class="text-5xl lg:text-7xl font-bold text-[#5A3528] mb-6 leading-tight">
-                        Elegance at <br>
-                        <span class="script-font font-normal text-6xl lg:text-8xl block mt-2">Fingertips</span>
-                    </h1>
-                    <p class="text-lg text-[#7D7068] mb-8 leading-relaxed">
-                        Experience premier nail care in a serene, luxurious environment. Located in the heart of St. George, Clin Nails offers artistry, hygiene, and relaxation redefined.
-                    </p>
-                    <div class="flex flex-col sm:flex-row gap-4">
-                        <a href="#book" class="btn-primary px-8 py-4 rounded-full text-center font-medium text-lg shadow-lg">Schedule Appointment</a>
-                        <a href="#services" class="btn-outline px-8 py-4 rounded-full text-center font-medium text-lg">View Services</a>
-                    </div>
-                </div>
-                <div class="relative fade-in">
-                    <div class="relative rounded-2xl overflow-hidden shadow-2xl">
-                         <!-- Placeholder for a high quality salon image -->
-                         <div class="bg-[#DBCBB8] aspect-[4/5] w-full flex items-center justify-center relative group">
-                            <img src="https://images.unsplash.com/photo-1604654894610-df63bc536371?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Clin Nails Salon Interior" class="absolute inset-0 w-full h-full object-cover">
-                            <div class="absolute inset-0 bg-gradient-to-t from-[#5A3528]/60 to-transparent"></div>
-                            <div class="absolute bottom-8 left-8 text-white z-10">
-                                <p class="font-serif text-2xl italic">"Where beauty meets precision."</p>
-                            </div>
-                         </div>
-                    </div>
-                    <!-- Decorative floating element -->
-                    <div class="absolute -bottom-10 -left-10 bg-white p-6 rounded-xl shadow-xl max-w-xs hidden md:block">
-                        <div class="flex items-center gap-4">
-                            <div class="bg-[#F5EBE0] p-3 rounded-full text-[#5A3528]">
-                                <i class="fas fa-star"></i>
-                            </div>
-                            <div>
-                                <p class="font-bold text-[#5A3528]">5.0 Star Rating</p>
-                                <p class="text-sm text-[#7D7068]">Voted Best in St. George</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Services Section -->
-    <section id="services" class="py-20 bg-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-16 fade-in">
-                <h2 class="text-4xl font-bold text-[#5A3528] mb-4">Our Services</h2>
-                <div class="h-1 w-24 bg-[#C5A059] mx-auto rounded-full"></div>
-                <p class="mt-4 text-[#7D7068] max-w-2xl mx-auto">From classic manicures to intricate nail art, we use only top-tier products to ensure lasting beauty.</p>
-            </div>
-
-            <div class="grid md:grid-cols-3 gap-8">
-                <!-- Service 1 -->
-                <div class="bg-[#F5EBE0] rounded-xl p-8 transition-transform hover:-translate-y-2 hover:shadow-lg fade-in">
-                    <div class="w-16 h-16 bg-[#5A3528] rounded-full flex items-center justify-center text-[#F5EBE0] text-2xl mb-6">
-                        <i class="fas fa-hand-sparkles"></i>
-                    </div>
-                    <h3 class="text-2xl font-bold text-[#5A3528] mb-3">Manicures</h3>
-                    <p class="text-[#7D7068] mb-4">Classic, Gel, and Dip Powder manicures tailored to your nail health and style preference.</p>
-                    <ul class="text-sm text-[#5A3528] space-y-2 mb-6">
-                        <li class="flex justify-between"><span>Classic Manicure</span> <span class="font-bold">$25</span></li>
-                        <li class="flex justify-between"><span>Gel Manicure</span> <span class="font-bold">$40</span></li>
-                        <li class="flex justify-between"><span>Dip Powder</span> <span class="font-bold">$50</span></li>
-                    </ul>
-                </div>
-
-                <!-- Service 2 -->
-                <div class="bg-[#F5EBE0] rounded-xl p-8 transition-transform hover:-translate-y-2 hover:shadow-lg fade-in">
-                    <div class="w-16 h-16 bg-[#5A3528] rounded-full flex items-center justify-center text-[#F5EBE0] text-2xl mb-6">
-                        <i class="fas fa-shoe-prints"></i>
-                    </div>
-                    <h3 class="text-2xl font-bold text-[#5A3528] mb-3">Pedicures</h3>
-                    <p class="text-[#7D7068] mb-4">Relax in our massage chairs while we pamper your feet. Includes scrub, massage, and polish.</p>
-                    <ul class="text-sm text-[#5A3528] space-y-2 mb-6">
-                        <li class="flex justify-between"><span>Classic Pedicure</span> <span class="font-bold">$35</span></li>
-                        <li class="flex justify-between"><span>Deluxe Spa Pedi</span> <span class="font-bold">$55</span></li>
-                        <li class="flex justify-between"><span>Jelly Pedicure</span> <span class="font-bold">$65</span></li>
-                    </ul>
-                </div>
-
-                <!-- Service 3 -->
-                <div class="bg-[#F5EBE0] rounded-xl p-8 transition-transform hover:-translate-y-2 hover:shadow-lg fade-in">
-                    <div class="w-16 h-16 bg-[#5A3528] rounded-full flex items-center justify-center text-[#F5EBE0] text-2xl mb-6">
-                        <i class="fas fa-gem"></i>
-                    </div>
-                    <h3 class="text-2xl font-bold text-[#5A3528] mb-3">Nail Art & Extras</h3>
-                    <p class="text-[#7D7068] mb-4">Custom designs, french tips, chrome, ombre, and repairs. Your imagination is the limit.</p>
-                    <ul class="text-sm text-[#5A3528] space-y-2 mb-6">
-                        <li class="flex justify-between"><span>Nail Art (per nail)</span> <span class="font-bold">$5+</span></li>
-                        <li class="flex justify-between"><span>French Tip Add-on</span> <span class="font-bold">$10</span></li>
-                        <li class="flex justify-between"><span>Acrylic Full Set</span> <span class="font-bold">$60</span></li>
-                    </ul>
-                </div>
+        <div class="grid">
+            <div class="card">
+                <img src="https://www.redbull.com/energydrink/v1/resources/content/products/objects/can_blue_standard_vertical.png" alt="Original" class="can-img">
+                <h3>THE ORIGINAL</h3>
+                <p>The blue and silver classic that started it all.</p>
             </div>
             
-            <div class="text-center mt-12">
-                <button id="view-prices-btn" class="text-[#5A3528] font-bold border-b-2 border-[#5A3528] hover:text-[#C5A059] hover:border-[#C5A059] transition-colors pb-1 cursor-pointer">View Full Price List</button>
+            <div class="card">
+                <img src="https://www.redbull.com/energydrink/v1/resources/content/products/objects/can_red_edition_vertical.png" alt="Red Edition" class="can-img">
+                <h3>RED EDITION</h3>
+                <p>A fresh twist with the taste of Watermelon.</p>
+            </div>
+
+            <div class="card">
+                <img src="https://www.redbull.com/energydrink/v1/resources/content/products/objects/can_sugarfree_vertical.png" alt="Sugar Free" class="can-img">
+                <h3>SUGARFREE</h3>
+                <p>100% Wings, 0% Sugar. For the focused mind.</p>
             </div>
         </div>
     </section>
 
-    <!-- Booking Section -->
-    <section id="book" class="py-20 bg-[#5A3528] text-[#F5EBE0] relative overflow-hidden">
-        <!-- Background Pattern -->
-        <div class="absolute inset-0 opacity-5" style="background-image: url('data:image/svg+xml,%3Csvg width=\'20\' height=\'20\' viewBox=\'0 0 20 20\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\' fill-rule=\'evenodd\'%3E%3Ccircle cx=\'3\' cy=\'3\' r=\'3\'/%3E%3Ccircle cx=\'13\' cy=\'13\' r=\'3\'/%3E%3C/g%3E%3C/svg%3E');"></div>
-
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <div class="text-center mb-12">
-                <h2 class="text-4xl font-bold mb-4">Book Your Appointment</h2>
-                <p class="text-[#DBCBB8]">Ready to pamper yourself? Schedule your visit to Clin Nails online.</p>
-            </div>
-
-            <div class="bg-white rounded-2xl shadow-2xl overflow-hidden text-[#5A3528]" id="booking-container">
-                <div class="md:flex">
-                    <div class="md:w-1/3 bg-[#F5EBE0] p-8 flex flex-col justify-center items-center text-center">
-                        <h3 class="font-serif text-2xl font-bold mb-4">Opening Hours</h3>
-                        <div class="space-y-2 text-sm">
-                            <p><span class="font-bold block">Mon - Fri</span> 9:00 AM - 7:00 PM</p>
-                            <p><span class="font-bold block">Saturday</span> 10:00 AM - 6:00 PM</p>
-                            <p><span class="font-bold block">Sunday</span> Closed</p>
-                        </div>
-                        <div class="mt-8">
-                            <i class="fas fa-phone-alt mb-2 text-xl"></i>
-                            <p class="font-bold">(435) 393-3549</p>
-                        </div>
-                    </div>
-                    <div class="md:w-2/3 p-8">
-                        <form id="booking-form" class="space-y-6">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label class="block text-sm font-bold mb-2">Service Type</label>
-                                    <select required class="w-full px-4 py-2 rounded-lg border bg-gray-50 focus:bg-white transition-colors">
-                                        <option value="">Select a service...</option>
-                                        <option value="Gel Manicure">Gel Manicure</option>
-                                        <option value="Dip Powder">Dip Powder</option>
-                                        <option value="Classic Pedicure">Classic Pedicure</option>
-                                        <option value="Deluxe Pedicure">Deluxe Pedicure</option>
-                                        <option value="Acrylic Set">Acrylic Full Set</option>
-                                        <option value="Removal">Gel/Acrylic Removal</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-bold mb-2">Specialist</label>
-                                    <select class="w-full px-4 py-2 rounded-lg border bg-gray-50 focus:bg-white transition-colors">
-                                        <option value="any">Any Available Specialist</option>
-                                        <option value="Sarah">Sarah</option>
-                                        <option value="Jessica">Jessica</option>
-                                        <option value="Michael">Michael</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label class="block text-sm font-bold mb-2">Date</label>
-                                    <input type="date" required class="w-full px-4 py-2 rounded-lg border bg-gray-50 focus:bg-white transition-colors">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-bold mb-2">Time</label>
-                                    <select required class="w-full px-4 py-2 rounded-lg border bg-gray-50 focus:bg-white transition-colors">
-                                        <option value="">Select time...</option>
-                                        <option value="09:00">09:00 AM</option>
-                                        <option value="10:00">10:00 AM</option>
-                                        <option value="11:00">11:00 AM</option>
-                                        <option value="12:00">12:00 PM</option>
-                                        <option value="13:00">01:00 PM</option>
-                                        <option value="14:00">02:00 PM</option>
-                                        <option value="15:00">03:00 PM</option>
-                                        <option value="16:00">04:00 PM</option>
-                                        <option value="17:00">05:00 PM</option>
-                                        <option value="18:00">06:00 PM</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label class="block text-sm font-bold mb-2">Your Name</label>
-                                    <input type="text" placeholder="Jane Doe" required class="w-full px-4 py-2 rounded-lg border bg-gray-50 focus:bg-white transition-colors">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-bold mb-2">Phone Number</label>
-                                    <input type="tel" placeholder="(555) 123-4567" required class="w-full px-4 py-2 rounded-lg border bg-gray-50 focus:bg-white transition-colors">
-                                </div>
-                            </div>
-
-                            <button type="submit" class="w-full btn-primary py-3 rounded-lg font-bold text-lg mt-4">Confirm Booking</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
+    <div class="event-feature">
+        <div>
+            <span class="event-label">LIVE EVENT</span>
+            <h2 style="font-size: 2.5rem; margin: 0;">F1: ORACLE RED BULL RACING</h2>
+            <p>Catch the high-speed action from the pit lane.</p>
         </div>
-    </section>
+    </div>
 
-    <!-- Gallery Section -->
-    <section id="gallery" class="py-20 bg-[#F5EBE0]">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-16 fade-in">
-                <h2 class="text-4xl font-bold text-[#5A3528] mb-4">Our Work</h2>
-                <p class="text-[#7D7068]">Follow us on Instagram <a href="#" class="font-bold">@ClinNailsStGeorge</a></p>
-            </div>
-            
-            <!-- CSS Grid Gallery -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 h-96 md:h-[600px]">
-                <!-- Large item -->
-                <div class="col-span-2 row-span-2 relative group overflow-hidden rounded-xl">
-                    <img src="https://images.unsplash.com/photo-1632922267756-9b71242b1592?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Intricate Nail Art" class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
-                    <div class="absolute inset-0 bg-[#5A3528] opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
-                </div>
-                <!-- Small items -->
-                <div class="relative group overflow-hidden rounded-xl">
-                    <img src="https://images.unsplash.com/photo-1519014816548-bf5fe059e98b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Elegant Manicure" class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
-                    <div class="absolute inset-0 bg-[#5A3528] opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
-                </div>
-                <div class="relative group overflow-hidden rounded-xl">
-                    <img src="https://images.unsplash.com/photo-1522337660859-02fbefca4702?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Pedicure Service" class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
-                    <div class="absolute inset-0 bg-[#5A3528] opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
-                </div>
-                <div class="relative group overflow-hidden rounded-xl">
-                    <img src="https://images.unsplash.com/photo-1599693359672-8c0d17d1e536?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Nail Art Detail" class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
-                    <div class="absolute inset-0 bg-[#5A3528] opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
-                </div>
-                <div class="relative group overflow-hidden rounded-xl">
-                    <img src="https://images.unsplash.com/photo-1604654894610-df63bc536371?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Premium Polish Collection" class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
-                    <div class="absolute inset-0 bg-[#5A3528] opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Footer -->
-    <footer id="contact" class="bg-[#2D2420] text-[#DBCBB8] pt-16 pb-8">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="grid md:grid-cols-3 gap-12 mb-12">
-                <div>
-                    <h3 class="font-serif text-3xl text-white mb-6">Clin Nails</h3>
-                    <p class="mb-4 text-sm leading-relaxed">
-                        Clin Nails provides the St. George community with exceptional nail care services. We are dedicated to high standards of hygiene and customer satisfaction.
-                    </p>
-                    <div class="flex space-x-4">
-                        <a href="#" class="w-10 h-10 rounded-full bg-[#5A3528] flex items-center justify-center hover:bg-[#C5A059] transition-colors social-link"><i class="fab fa-instagram"></i></a>
-                        <a href="#" class="w-10 h-10 rounded-full bg-[#5A3528] flex items-center justify-center hover:bg-[#C5A059] transition-colors social-link"><i class="fab fa-facebook-f"></i></a>
-                        <a href="#" class="w-10 h-10 rounded-full bg-[#5A3528] flex items-center justify-center hover:bg-[#C5A059] transition-colors social-link"><i class="fab fa-tiktok"></i></a>
-                    </div>
-                </div>
-                
-                <div>
-                    <h4 class="text-white font-bold text-lg mb-6">Quick Links</h4>
-                    <ul class="space-y-3 text-sm">
-                        <li><a href="#home" class="hover:text-[#C5A059] transition-colors">Home</a></li>
-                        <li><a href="#services" class="hover:text-[#C5A059] transition-colors">Full Service Menu</a></li>
-                        <li><a href="#book" class="hover:text-[#C5A059] transition-colors">Book Online</a></li>
-                        <li><a href="#" class="hover:text-[#C5A059] transition-colors dead-link">Gift Cards</a></li>
-                        <li><a href="#" class="hover:text-[#C5A059] transition-colors dead-link">Careers</a></li>
-                    </ul>
-                </div>
-
-                <div>
-                    <h4 class="text-white font-bold text-lg mb-6">Visit Us</h4>
-                    <ul class="space-y-4 text-sm">
-                        <li class="flex items-start">
-                            <i class="fas fa-map-marker-alt mt-1 mr-3 text-[#C5A059]"></i>
-                            <span>2153 S Sandia Cir<br>Washington, UT 84780</span>
-                        </li>
-                        <li class="flex items-center">
-                            <i class="fas fa-envelope mr-3 text-[#C5A059]"></i>
-                            <span>hello@clinnailsstg.com</span>
-                        </li>
-                        <li class="flex items-center">
-                            <i class="fas fa-phone mr-3 text-[#C5A059]"></i>
-                            <span>(435) 393-3549</span>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-            
-            <div class="border-t border-[#5A3528] pt-8 text-center text-xs">
-                <p>&copy; 2024 Clin Nails. All rights reserved. Designed for St. George.</p>
-            </div>
-        </div>
+    <footer>
+        <p>&copy; 2026 Red Bull Energy. This is a concept advertisement page.</p>
     </footer>
 
-    <!-- Booking Success Modal -->
-    <div id="booking-modal" class="fixed inset-0 z-[100] hidden">
-        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm modal-backdrop" data-target="booking-modal"></div>
-        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md p-4">
-            <div class="bg-white rounded-2xl p-8 text-center shadow-2xl scale-95 opacity-0 transition-all duration-300 modal-content">
-                <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <i class="fas fa-check text-4xl text-green-500"></i>
-                </div>
-                <h3 class="text-2xl font-bold text-[#5A3528] mb-2">Booking Confirmed!</h3>
-                <p class="text-gray-600 mb-6">Thank you, <span id="modal-name" class="font-bold">Guest</span>. You are booked for a <span id="modal-service" class="font-bold">Manicure</span> on <span id="modal-date" class="font-bold">Date</span> at <span id="modal-time" class="font-bold">Time</span>.</p>
-                <p class="text-sm text-gray-500 mb-8">A confirmation text has been sent to your phone.</p>
-                <button class="btn-primary w-full py-3 rounded-lg font-bold close-modal-btn" data-target="booking-modal">Great, thanks!</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Generic Message Modal (for dead links) -->
-    <div id="message-modal" class="fixed inset-0 z-[100] hidden">
-        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm modal-backdrop" data-target="message-modal"></div>
-        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md p-4">
-            <div class="bg-white rounded-2xl p-8 text-center shadow-2xl scale-95 opacity-0 transition-all duration-300 modal-content">
-                <div class="w-20 h-20 bg-[#F5EBE0] rounded-full flex items-center justify-center mx-auto mb-6">
-                    <i class="fas fa-info text-4xl text-[#C5A059]"></i>
-                </div>
-                <h3 id="message-title" class="text-2xl font-bold text-[#5A3528] mb-2">Coming Soon</h3>
-                <p id="message-text" class="text-gray-600 mb-8">This feature is currently under development.</p>
-                <button class="btn-primary w-full py-3 rounded-lg font-bold close-modal-btn" data-target="message-modal">Got it</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Price List Modal -->
-    <div id="price-modal" class="fixed inset-0 z-[100] hidden">
-        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm modal-backdrop" data-target="price-modal"></div>
-        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl p-4">
-            <div class="bg-white rounded-2xl shadow-2xl scale-95 opacity-0 transition-all duration-300 modal-content max-h-[90vh] overflow-y-auto">
-                <div class="sticky top-0 bg-white p-6 border-b flex justify-between items-center z-10">
-                    <h3 class="text-2xl font-bold text-[#5A3528]">Full Price Menu</h3>
-                    <button class="text-gray-400 hover:text-gray-600 close-modal-btn" data-target="price-modal"><i class="fas fa-times text-2xl"></i></button>
-                </div>
-                <div class="p-8 space-y-8">
-                    <div>
-                        <h4 class="text-xl font-bold text-[#C5A059] mb-4 border-b pb-2">Manicures</h4>
-                        <ul class="space-y-3">
-                            <li class="flex justify-between text-[#5A3528]"><span class="font-medium">Classic Manicure</span> <span>$25</span></li>
-                            <li class="flex justify-between text-[#5A3528]"><span class="font-medium">Gel Manicure</span> <span>$40</span></li>
-                            <li class="flex justify-between text-[#5A3528]"><span class="font-medium">Dip Powder (Overlay)</span> <span>$50</span></li>
-                            <li class="flex justify-between text-[#5A3528]"><span class="font-medium">Dip Powder (Extension)</span> <span>$60</span></li>
-                            <li class="flex justify-between text-[#5A3528]"><span class="font-medium">Hard Gel Fill</span> <span>$55</span></li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h4 class="text-xl font-bold text-[#C5A059] mb-4 border-b pb-2">Pedicures</h4>
-                        <ul class="space-y-3">
-                            <li class="flex justify-between text-[#5A3528]"><span class="font-medium">Classic Pedicure</span> <span>$35</span></li>
-                            <li class="flex justify-between text-[#5A3528]"><span class="font-medium">Deluxe Spa (Mud Mask + Massage)</span> <span>$55</span></li>
-                            <li class="flex justify-between text-[#5A3528]"><span class="font-medium">Organic Jelly Pedicure</span> <span>$65</span></li>
-                            <li class="flex justify-between text-[#5A3528]"><span class="font-medium">Volcano Spa Pedicure</span> <span>$75</span></li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h4 class="text-xl font-bold text-[#C5A059] mb-4 border-b pb-2">Add-Ons</h4>
-                        <ul class="space-y-3">
-                            <li class="flex justify-between text-[#5A3528]"><span class="font-medium">French Tip</span> <span>+$10</span></li>
-                            <li class="flex justify-between text-[#5A3528]"><span class="font-medium">Nail Art (Simple)</span> <span>+$5/nail</span></li>
-                            <li class="flex justify-between text-[#5A3528]"><span class="font-medium">Nail Art (Complex)</span> <span>+$10+/nail</span></li>
-                            <li class="flex justify-between text-[#5A3528]"><span class="font-medium">Paraffin Wax</span> <span>+$15</span></li>
-                            <li class="flex justify-between text-[#5A3528]"><span class="font-medium">Gel Removal Only</span> <span>$15</span></li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="p-6 bg-gray-50 border-t text-center">
-                    <button class="btn-primary px-8 py-3 rounded-full font-bold close-modal-btn" data-target="price-modal" onclick="document.getElementById('booking-form').scrollIntoView({behavior: 'smooth'})">Book an Appointment</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // --- Mobile Menu Logic ---
-        const btn = document.getElementById('mobile-menu-btn');
-        const menu = document.getElementById('mobile-menu');
-        const closeBtn = document.getElementById('close-menu-btn');
-        const mobileLinks = document.querySelectorAll('.mobile-link');
-
-        function toggleMenu() {
-            menu.classList.toggle('open');
-        }
-
-        btn.addEventListener('click', toggleMenu);
-        closeBtn.addEventListener('click', toggleMenu);
-        mobileLinks.forEach(link => link.addEventListener('click', toggleMenu));
-
-        // --- Fade In Animation Logic ---
-        const observerOptions = { root: null, rootMargin: '0px', threshold: 0.1 };
-        const observer = new IntersectionObserver((entries, observer) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('visible');
-                    observer.unobserve(entry.target);
-                }
-            });
-        }, observerOptions);
-
-        document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
-
-        // --- Generic Modal Functions ---
-        function openModal(modalId) {
-            const modal = document.getElementById(modalId);
-            const content = modal.querySelector('.modal-content');
-            modal.classList.remove('hidden');
-            setTimeout(() => {
-                content.classList.remove('scale-95', 'opacity-0');
-                content.classList.add('scale-100', 'opacity-100');
-            }, 10);
-        }
-
-        function closeModal(modalId) {
-            const modal = document.getElementById(modalId);
-            const content = modal.querySelector('.modal-content');
-            content.classList.remove('scale-100', 'opacity-100');
-            content.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => {
-                modal.classList.add('hidden');
-            }, 300);
-        }
-
-        // Close button handlers
-        document.querySelectorAll('.close-modal-btn').forEach(btn => {
-            btn.addEventListener('click', () => closeModal(btn.dataset.target));
-        });
-        document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
-            backdrop.addEventListener('click', () => closeModal(backdrop.dataset.target));
-        });
-
-        // --- Specific Functionality ---
-
-        // 1. Price List Modal
-        document.getElementById('view-prices-btn').addEventListener('click', (e) => {
-            e.preventDefault();
-            openModal('price-modal');
-        });
-
-        // 2. Dead Links & Socials (Coming Soon)
-        document.querySelectorAll('.dead-link, .social-link').forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const title = document.getElementById('message-title');
-                const text = document.getElementById('message-text');
-                
-                if(link.classList.contains('social-link')) {
-                    title.textContent = "Connect with Us";
-                    text.textContent = "Our social media pages are launching soon! Stay tuned.";
-                } else if (link.textContent.includes('Gift')) {
-                    title.textContent = "Gift Cards";
-                    text.textContent = "Digital gift cards will be available for purchase online starting next month.";
-                } else {
-                    title.textContent = "Coming Soon";
-                    text.textContent = "We are currently building this page. Please check back later.";
-                }
-                openModal('message-modal');
-            });
-        });
-
-        // 3. Highlight Booking Section on Click
-        document.querySelectorAll('a[href="#book"]').forEach(anchor => {
-            anchor.addEventListener('click', function(e) {
-                // Let native smooth scroll happen, then add highlight
-                setTimeout(() => {
-                    const bookingContainer = document.getElementById('booking-container');
-                    bookingContainer.classList.remove('highlight-section'); // Reset if exists
-                    void bookingContainer.offsetWidth; // Trigger reflow
-                    bookingContainer.classList.add('highlight-section');
-                }, 500);
-            });
-        });
-
-        // 4. Booking Form Logic
-        const form = document.getElementById('booking-form');
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            
-            const name = form.querySelector('input[placeholder="Jane Doe"]').value;
-            const service = form.querySelector('select').value;
-            const date = form.querySelector('input[type="date"]').value;
-            const time = form.querySelector('select[value^="0"], select:nth-of-type(2)').value;
-
-            document.getElementById('modal-name').textContent = name;
-            document.getElementById('modal-service').textContent = service || "Service";
-            document.getElementById('modal-date').textContent = date;
-            document.getElementById('modal-time').textContent = time;
-
-            openModal('booking-modal');
-            
-            // Reset form when closing success modal
-            const closeBtn = document.querySelector('.close-modal-btn[data-target="booking-modal"]');
-            const originalClose = closeBtn.onclick; // Store original
-            closeBtn.onclick = function() {
-                 closeModal('booking-modal');
-                 form.reset();
-                 closeBtn.onclick = originalClose; // Restore generic handler
-            }
-        });
-
-    </script>
 </body>
 </html>
