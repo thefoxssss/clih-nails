@@ -74,6 +74,7 @@ loginBtn.addEventListener("click", async () => {
   try {
     await auth.signInWithEmailAndPassword(email, password);
   } catch (error) {
+    loginError.textContent = formatAuthError(error);
     loginError.textContent = error.message;
   }
 });
@@ -97,6 +98,7 @@ registerBtn.addEventListener("click", async () => {
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
   } catch (error) {
+    registerError.textContent = formatAuthError(error);
     registerError.textContent = error.message;
   }
 });
@@ -407,3 +409,13 @@ auth.onAuthStateChanged(user => {
     resetApp();
   }
 });
+
+function formatAuthError(error){
+  if(error?.code === "auth/configuration-not-found"){
+    return "Firebase Auth is not fully configured. Ensure Email/Password auth is enabled and your domain is added to Authorized Domains in Firebase Auth settings.";
+  }
+  if(error?.code === "auth/network-request-failed"){
+    return "Network error. Check your internet connection and Firebase config.";
+  }
+  return error?.message || "Authentication failed. Please try again.";
+}
