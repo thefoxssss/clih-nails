@@ -55,23 +55,11 @@ let currentVoiceRoom = "daily-sync";
 let currentUser = null;
 let activeFriend = null;
 let unsubscribeMessages = null;
-
-let currentChannelId = "general";
-let currentChannelType = "channel";
-let currentChannelLabel = "messages";
-
-let currentChannel = "general";
-let currentVoiceRoom = "daily-sync";
-let currentUser = null;
-let unsubscribeMessages = null;
-let unsubscribePresence = null;
 let unsubscribeVoice = null;
 let unsubscribeFriends = null;
 let localStream = null;
 let peerConnections = {};
 const remoteAudioElements = new Set();
-let localStream = null;
-let peerConnections = {};
 
 function setActiveTab(tab){
   if(tab === "login"){
@@ -100,7 +88,6 @@ loginBtn.addEventListener("click", async () => {
     await auth.signInWithEmailAndPassword(email, password);
   } catch (error) {
     loginError.textContent = formatAuthError(error);
-    loginError.textContent = error.message;
   }
 });
 
@@ -125,7 +112,6 @@ registerBtn.addEventListener("click", async () => {
     });
   } catch (error) {
     registerError.textContent = formatAuthError(error);
-    registerError.textContent = error.message;
   }
 });
 
@@ -151,13 +137,6 @@ function renderMessage(messageId, data){
         <span class="time">${data.createdAt ? data.createdAt.toDate().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}) : ""}</span>
         ${canDelete ? `<button class="message-action" data-message-id="${messageId}" title="Delete message">Delete</button>` : ""}
       </div>
-function renderMessage(data){
-  const wrapper = document.createElement("div");
-  wrapper.className = "message";
-  wrapper.innerHTML = `
-    <div class="avatar">${(data.handle || "?").slice(0,2).toUpperCase()}</div>
-    <div>
-      <div class="meta"><span class="name">${data.handle || "Unknown"}</span><span class="time">${data.createdAt ? data.createdAt.toDate().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}) : ""}</span></div>
       <p class="text">${data.text}</p>
     </div>
   `;
@@ -176,8 +155,6 @@ function subscribeToMessages(){
     return;
   }
   unsubscribeMessages = getMessageCollection()
-  unsubscribeMessages = getMessageCollection()
-  unsubscribeMessages = db.collection("channels").doc(currentChannel).collection("messages")
     .orderBy("createdAt", "asc")
     .limitToLast(50)
     .onSnapshot(snapshot => {
@@ -187,22 +164,17 @@ function subscribeToMessages(){
       if(messageCount){
         messageCount.textContent = snapshot.size;
       }
-      snapshot.forEach(doc => renderMessage(doc.data()));
-      chatWindow.scrollTop = chatWindow.scrollHeight;
-      messageCount.textContent = snapshot.size;
     });
 }
 
 async function sendMessage(){
   const text = messageInput.value.trim();
   if(!text || !currentUser || !currentChannelId){
-  if(!text || !currentUser){
     return;
   }
   const userDoc = await db.collection("users").doc(currentUser.uid).get();
   const userData = userDoc.data();
   await getMessageCollection().add({
-  await db.collection("channels").doc(currentChannel).collection("messages").add({
     text,
     handle: userData?.handle || currentUser.email,
     uid: currentUser.uid,
@@ -243,30 +215,6 @@ friendHandleInput.addEventListener("keydown", (event) => {
   }
 });
 
-function subscribeToPresence(){
-  if(unsubscribePresence){
-    unsubscribePresence();
-  }
-  unsubscribePresence = db.collection("users").where("online", "==", true)
-    .onSnapshot(snapshot => {
-      friendsList.innerHTML = "";
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        const row = document.createElement("div");
-        row.className = "friend";
-        row.innerHTML = `
-          <div class="avatar">${(data.handle || "?").slice(0,2).toUpperCase()}</div>
-          <div>
-            <div>${data.handle || "Unknown"}</div>
-            <small>${data.status || "Online"}</small>
-          </div>
-        `;
-        friendsList.appendChild(row);
-      });
-      onlineCount.textContent = `Online ${snapshot.size}`;
-    });
-}
-
 function subscribeToFriends(){
   if(!currentUser){
     return;
@@ -278,7 +226,6 @@ function subscribeToFriends(){
     .onSnapshot(snapshot => {
       friendsList.innerHTML = "";
       dmList.innerHTML = "";
-      let onlineTotal = 0;
       snapshot.forEach(doc => {
         const data = doc.data();
         const friendRow = document.createElement("div");
@@ -297,12 +244,6 @@ function subscribeToFriends(){
         });
         friendsList.appendChild(friendRow);
 
-        if((data.status || "").toLowerCase() === "online"){
-          onlineTotal += 1;
-        }
-      dmList.innerHTML = "";
-      snapshot.forEach(doc => {
-        const data = doc.data();
         const dmItem = document.createElement("button");
         dmItem.className = "dm-item";
         dmItem.type = "button";
@@ -345,8 +286,15 @@ function setDmChannel(friendUid, label){
   subscribeToMessages();
 }
 
-
+function setChannel(name, label = name){
+  currentChannelId = name;
+  currentChannelType = "channel";
+  currentChannelLabel = label;
+  activeChannelLabel.textContent = `# ${label}`;
+  messageInput.placeholder = `Message #${label}`;
+  dmCallBtn.classList.add("hidden");
   document.querySelectorAll(".channel").forEach(channel => channel.classList.remove("active"));
+  document.querySelectorAll(`[data-channel="${name}"]`).forEach(channel => channel.classList.add("active"));
   subscribeToMessages();
 }
 
@@ -372,7 +320,6 @@ function updateProfilePanel(profile){
   profileHandle.textContent = profile?.handle ? `@${profile.handle}` : "@handle";
   profileStatus.textContent = profile?.status || "Working";
 }
-
 
 async function addFriendByHandle(){
   if(!currentUser){
@@ -416,22 +363,9 @@ async function addFriendByHandle(){
 function setVoiceRoom(name){
   currentVoiceRoom = name;
   voiceRoomName.textContent = name;
+  document.querySelectorAll("[data-voice]").forEach(channel => channel.classList.remove("active"));
+  document.querySelectorAll(`[data-voice="${name}"]`).forEach(channel => channel.classList.add("active"));
   subscribeToVoiceRoom();
-}
-
-function setChannel(name, label = name){
-  currentChannelId = name;
-  currentChannelType = "channel";
-  currentChannelLabel = label;
-  activeChannelLabel.textContent = `# ${label}`;
-  messageInput.placeholder = `Message #${label}`;
-function setChannel(name){
-  currentChannel = name;
-  activeChannelLabel.textContent = `# ${name}`;
-  messageInput.placeholder = `Message #${name}`;
-  document.querySelectorAll(".channel").forEach(channel => channel.classList.remove("active"));
-  document.querySelectorAll(`[data-channel="${name}"]`).forEach(channel => channel.classList.add("active"));
-  subscribeToMessages();
 }
 
 document.querySelectorAll("[data-channel]").forEach(channel => {
@@ -440,21 +374,13 @@ document.querySelectorAll("[data-channel]").forEach(channel => {
   });
 });
 
-function setVoiceRoom(name){
-  currentVoiceRoom = name;
-  voiceRoomName.textContent = name;
-  document.querySelectorAll("[data-voice]").forEach(channel => channel.classList.remove("active"));
-  document.querySelectorAll(`[data-voice="${name}"]`).forEach(channel => channel.classList.add("active"));
-  subscribeToVoiceRoom();
-}
-
 document.querySelectorAll("[data-voice]").forEach(channel => {
   channel.addEventListener("click", () => {
     setVoiceRoom(channel.dataset.voice);
   });
 });
 
-async function subscribeToVoiceRoom(){
+function subscribeToVoiceRoom(){
   if(unsubscribeVoice){
     unsubscribeVoice();
   }
@@ -483,7 +409,6 @@ async function joinVoice(){
   } else {
     await startWebRTC();
   }
-  await startWebRTC();
   voiceStatus.textContent = "Connected";
 }
 
@@ -492,7 +417,9 @@ async function leaveVoice(){
   voiceBadge.textContent = "Offline";
   voiceBadge.classList.remove("live");
   voiceBadge.classList.add("offline");
-  await db.collection("voiceRooms").doc(currentVoiceRoom).collection("participants").doc(currentUser.uid).delete();
+  if(currentUser){
+    await db.collection("voiceRooms").doc(currentVoiceRoom).collection("participants").doc(currentUser.uid).delete();
+  }
   Object.values(peerConnections).forEach(pc => pc.close());
   peerConnections = {};
   if(localStream){
@@ -531,7 +458,6 @@ async function startWebRTC(){
     audio.classList.add("remote-audio");
     document.body.appendChild(audio);
     remoteAudioElements.add(audio);
-    document.body.appendChild(audio);
   };
 
   const offer = await peerConnection.createOffer();
@@ -587,7 +513,6 @@ async function answerCall(){
     audio.classList.add("remote-audio");
     document.body.appendChild(audio);
     remoteAudioElements.add(audio);
-    document.body.appendChild(audio);
   };
 
   await peerConnection.setRemoteDescription(new RTCSessionDescription(roomData.offer));
@@ -607,7 +532,7 @@ async function answerCall(){
   peerConnections[currentVoiceRoom] = peerConnection;
 }
 
-async function syncVoiceRoomOffer(){
+function syncVoiceRoomOffer(){
   const roomRef = db.collection("voiceRooms").doc(currentVoiceRoom);
   roomRef.onSnapshot(snapshot => {
     const data = snapshot.data();
@@ -649,10 +574,6 @@ async function showApp(user){
   authOverlay.classList.add("hidden");
   if(user){
     await ensureUserProfile(user);
-function showApp(user){
-  currentUser = user;
-  authOverlay.classList.add("hidden");
-  if(user){
     db.collection("users").doc(user.uid).set({
       online: true,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -673,12 +594,6 @@ function showApp(user){
   activeChannelLabel.textContent = "Select a friend";
   messageInput.placeholder = "Select a DM to start chatting";
   currentChannelId = null;
-    });
-  }
-  subscribeToPresence();
-  subscribeToFriends();
-  setChannel(currentChannelId);
-  setChannel(currentChannel);
   subscribeToVoiceRoom();
   syncVoiceRoomOffer();
 }
@@ -690,24 +605,23 @@ function resetApp(){
   accountName.textContent = "guest";
   accountStatus.textContent = "Offline";
   dmList.innerHTML = "";
+  friendsList.innerHTML = "";
   friendsError.textContent = "";
   dmCallBtn.classList.add("hidden");
   updateProfilePanel({ label: "You", handle: "handle", status: "Offline" });
-  onlineCount.textContent = "Online 0";
+  onlineCount.textContent = "Friends 0";
   if(unsubscribeMessages){
     unsubscribeMessages();
-  }
-  if(unsubscribeMessages){
-    unsubscribeMessages();
-  }
-  if(unsubscribePresence){
-    unsubscribePresence();
   }
   if(unsubscribeVoice){
     unsubscribeVoice();
   }
   if(unsubscribeFriends){
     unsubscribeFriends();
+  }
+  chatWindow.innerHTML = "";
+  if(messageCount){
+    messageCount.textContent = "0";
   }
 }
 
