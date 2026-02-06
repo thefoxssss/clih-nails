@@ -62,10 +62,6 @@
 </div>
 
 <div class="app">
-  <aside class="channels">
-    <div class="brand">
-      <h1>WorkOnline</h1>
-      <span class="status-badge" id="onlineCount">Friends 0</span>
   <aside class="sidebar">
     <div class="server active">WO</div>
     <div class="server">UI</div>
@@ -77,7 +73,7 @@
   <aside class="channels">
     <div class="brand">
       <h1>WorkOnline</h1>
-      <span class="status-badge" id="onlineCount">Online 0</span>
+      <span class="status-badge" id="onlineCount">Friends 0</span>
     </div>
 
     <div class="section">
@@ -93,7 +89,7 @@
     <div class="section">
       <h2>Direct Messages</h2>
       <div id="dmList"></div>
-      <div class="channel active" data-channel="general"># messages <span id="messageCount">0</span></div>
+      <div class="channel active" data-channel="messages"># messages <span id="messageCount">0</span></div>
       <div class="channel" data-channel="announcements"># announcements</div>
     </div>
 
@@ -125,18 +121,12 @@
     <div class="header">
       <div>
         <h2 id="activeChannel">Select a friend</h2>
-        <div class="tag">Direct message and call your friends.</div>
+        <div class="tag">Real-time chat with your crew in a Spotify-inspired space.</div>
       </div>
       <div class="actions">
         <button class="button success hidden" id="dmCallBtn">Call Friend</button>
         <button class="button" id="startVoiceBtn">Join Call</button>
         <button class="button primary" id="leaveVoiceBtn">Leave Call</button>
-        <h2 id="activeChannel"># messages</h2>
-        <div class="tag">Real-time chat with friends and group channels.</div>
-      </div>
-      <div class="actions">
-        <button class="button" id="startVoiceBtn">Join Voice</button>
-        <button class="button primary" id="leaveVoiceBtn">Leave Voice</button>
       </div>
     </div>
 
@@ -145,7 +135,6 @@
     <div class="input">
       <div class="input-box">
         <input id="messageInput" type="text" placeholder="Select a DM to start chatting">
-        <input id="messageInput" type="text" placeholder="Message #messages">
         <button class="button primary" id="sendBtn">Send</button>
       </div>
     </div>
@@ -169,30 +158,10 @@
       <div class="voice-panel">
         <div class="voice-row">
           <div>
-            <div><strong id="voiceRoomName">No active call</strong></div>
-      <h2>Friends Online</h2>
-      <div class="friend-actions">
-        <input id="friendHandleInput" type="text" placeholder="Add friend by handle">
-        <button class="button" id="addFriendBtn">Add</button>
-      </div>
-      <div class="auth-note" id="friendsError"></div>
-      <div id="friendsList"></div>
-    </div>
-
-    <div class="section">
-      <h2>Direct Messages</h2>
-      <div id="dmList"></div>
-    </div>
-
-    <div class="section">
-      <h2>Voice Room</h2>
-      <div class="voice-panel">
-        <div class="voice-row">
-          <div>
             <div><strong id="voiceRoomName">daily-sync</strong></div>
             <div class="voice-status" id="voiceStatus">Not connected</div>
           </div>
-          <span class="badge" id="voiceBadge">Offline</span>
+          <span class="badge offline" id="voiceBadge">Offline</span>
         </div>
         <div class="voice-status" id="voiceParticipants">0 listeners</div>
       </div>

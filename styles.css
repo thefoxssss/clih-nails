@@ -1,13 +1,13 @@
 :root{
-  --bg:#0f111a;
-  --panel:#171a23;
-  --panel-light:#1f2430;
-  --accent:#5865f2;
-  --text:#f5f6fb;
-  --muted:#9aa4bf;
-  --success:#3ba55c;
-  --warning:#faa61a;
-  --danger:#ed4245;
+  --bg:#0b0b0b;
+  --panel:#121212;
+  --panel-light:#1a1a1a;
+  --accent:#1db954;
+  --text:#f5f5f5;
+  --muted:#b3b3b3;
+  --success:#1db954;
+  --warning:#f5c542;
+  --danger:#e91429;
 }
 *{box-sizing:border-box}
 body{
@@ -18,19 +18,12 @@ body{
 }
 .app{
   display:grid;
-  grid-template-columns:320px 1fr 280px;
-  height:100vh;
-}
-.channels,.friends{
-  background:var(--panel);
-  border-right:1px solid #0b0d13;
-}
-  grid-template-columns:90px 240px 1fr 280px;
+  grid-template-columns:90px 260px 1fr 300px;
   height:100vh;
 }
 .sidebar,.channels,.friends{
   background:var(--panel);
-  border-right:1px solid #0b0d13;
+  border-right:1px solid #070707;
 }
 .sidebar{
   display:flex;
@@ -45,8 +38,13 @@ body{
   display:grid;place-items:center;
   color:var(--text);
   font-weight:700;
+  border:1px solid transparent;
 }
-.server.active{background:var(--accent)}
+.server.active{
+  background:rgba(29,185,84,0.15);
+  border-color:rgba(29,185,84,0.5);
+  color:var(--accent);
+}
 .channels{
   padding:20px;
   display:flex;
@@ -65,7 +63,7 @@ body{
   font-size:12px;
   padding:4px 8px;
   border-radius:999px;
-  background:#24304a;
+  background:#1e1e1e;
   color:var(--muted);
 }
 .section h2{
@@ -93,6 +91,7 @@ body{
   padding:12px;
   border-radius:14px;
   background:var(--panel-light);
+  border:1px solid #1e1e1e;
 }
 .account h3{margin:0 0 6px 0;font-size:14px}
 .account p{margin:0;font-size:12px;color:var(--muted)}
@@ -100,11 +99,11 @@ body{
 .main{
   display:flex;
   flex-direction:column;
-  background:#121521;
+  background:linear-gradient(180deg,#121212 0%,#0b0b0b 100%);
 }
 .header{
   padding:18px 24px;
-  border-bottom:1px solid #0b0d13;
+  border-bottom:1px solid #070707;
   display:flex;
   align-items:center;
   justify-content:space-between;
@@ -117,17 +116,17 @@ body{
 }
 .button{
   padding:8px 14px;
-  border-radius:10px;
+  border-radius:999px;
   border:1px solid transparent;
   background:var(--panel-light);
   color:var(--text);
   font-size:13px;
   cursor:pointer;
 }
-.button.primary{background:var(--accent)}
-.button.ghost{background:transparent;border-color:#2a2f3b}
-.button.danger{background:rgba(237,66,69,0.2);color:var(--danger)}
-.button.success{background:rgba(59,165,92,0.2);color:var(--success)}
+.button.primary{background:var(--accent);color:#0b0b0b}
+.button.ghost{background:transparent;border-color:#2a2a2a}
+.button.danger{background:rgba(233,20,41,0.2);color:var(--danger)}
+.button.success{background:rgba(29,185,84,0.2);color:var(--success)}
 .chat{
   flex:1;
   padding:24px;
@@ -153,15 +152,15 @@ body{
 .text{margin:6px 0 0 0;color:var(--text)}
 .input{
   padding:18px 24px;
-  border-top:1px solid #0b0d13;
+  border-top:1px solid #070707;
 }
 .input-box{
   display:flex;
   gap:12px;
   align-items:center;
   background:var(--panel-light);
-  border-radius:12px;
-  padding:10px;
+  border-radius:999px;
+  padding:10px 16px;
 }
 .input-box input{
   flex:1;
@@ -184,20 +183,12 @@ body{
 }
 .friend .avatar{width:36px;height:36px;border-radius:12px;font-size:12px}
 .friend small{color:var(--muted)}
-.group-card{
-  background:var(--panel-light);
-  border-radius:14px;
-  padding:12px;
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-}
 .tag{font-size:11px;color:var(--muted)}
 .badge{font-size:11px;padding:2px 8px;border-radius:999px}
-.badge.live{background:rgba(88,101,242,0.2);color:var(--accent)}
-.badge.focus{background:rgba(59,165,92,0.2);color:var(--success)}
-.badge.alert{background:rgba(250,166,26,0.2);color:var(--warning)}
-.badge.offline{background:rgba(154,164,191,0.2);color:var(--muted)}
+.badge.live{background:rgba(29,185,84,0.2);color:var(--accent)}
+.badge.focus{background:rgba(29,185,84,0.2);color:var(--accent)}
+.badge.alert{background:rgba(245,197,66,0.2);color:var(--warning)}
+.badge.offline{background:rgba(179,179,179,0.2);color:var(--muted)}
 
 .auth-overlay{
   position:fixed;
@@ -312,7 +303,7 @@ body{
 }
 .dm-call{
   border:none;
-  background:rgba(88,101,242,0.2);
+  background:rgba(29,185,84,0.2);
   color:var(--accent);
   font-size:11px;
   padding:4px 8px;
@@ -331,7 +322,6 @@ body{
   font-size:11px;
   cursor:pointer;
 }
-
 
 .voice-panel{
   background:var(--panel-light);
@@ -355,6 +345,6 @@ body{
   font-size:11px;
   padding:3px 8px;
   border-radius:999px;
-  background:rgba(88,101,242,0.2);
+  background:rgba(29,185,84,0.2);
   color:var(--accent);
 }
