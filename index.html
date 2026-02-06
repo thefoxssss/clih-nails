@@ -2,248 +2,152 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>GOONER TERMINAL</title>
+<title>WorkOnline Chat</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
-<style>
-/* === CORE STYLE === */
-:root{--accent:#ff0606}
-html,body{
-  margin:0;height:100%;
-  background:#050505;
-  color:var(--accent);
-  font-family:"Press Start 2P",monospace;
-  overflow:hidden;
-}
-.overlay{
-  position:fixed;inset:0;
-  background:black;
-  display:none;
-  align-items:center;
-  justify-content:center;
-  flex-direction:column;
-}
-.overlay.active{display:flex}
-.close-btn{
-  position:absolute;top:20px;right:20px;
-  border:2px solid var(--accent);
-  background:none;color:var(--accent);
-  padding:10px;cursor:pointer;
-}
-.menu{
-  position:fixed;top:20px;right:20px;
-}
-.menu button{
-  display:block;
-  background:black;
-  color:var(--accent);
-  border:2px solid var(--accent);
-  margin:5px 0;
-  padding:10px;
-  cursor:pointer;
-}
-.ttt-grid{
-  display:grid;
-  grid-template-columns:repeat(3,80px);
-  gap:5px;
-}
-.ttt-cell{
-  width:80px;height:80px;
-  border:2px solid var(--accent);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:40px;
-  cursor:pointer;
-}
-.card{
-  border:2px solid var(--accent);
-  padding:10px;
-  min-width:50px;
-  text-align:center;
-}
-</style>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
-
 <body>
-
-<div class="menu">
-  <button onclick="openTTT()">TIC TAC TOE</button>
-  <button onclick="openBJ()">BLACKJACK</button>
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-card">
+    <div>
+      <h2 style="margin:0 0 6px 0;">Welcome to WorkOnline</h2>
+      <div class="auth-note">Connect your Firebase project for real-time accounts, chat, and voice channels.</div>
+    </div>
+    <div class="auth-tabs">
+      <button class="button" id="loginTab">Sign In</button>
+      <button class="button ghost" id="registerTab">Create Account</button>
+    </div>
+    <div id="loginForm">
+      <div class="field">
+        <label for="loginEmail">Email</label>
+        <input id="loginEmail" type="email" placeholder="you@company.com">
+      </div>
+      <div class="field" style="margin-top:12px;">
+        <label for="loginPass">Password</label>
+        <input id="loginPass" type="password" placeholder="••••••••">
+      </div>
+      <div class="auth-actions" style="margin-top:16px;">
+        <button class="button primary" id="loginBtn">Sign In</button>
+        <div class="auth-note" id="loginError"></div>
+      </div>
+    </div>
+    <div id="registerForm" class="hidden">
+      <div class="field">
+        <label for="registerEmail">Email</label>
+        <input id="registerEmail" type="email" placeholder="name@company.com">
+      </div>
+      <div class="field" style="margin-top:12px;">
+        <label for="registerPass">Password</label>
+        <input id="registerPass" type="password" placeholder="Create a password">
+      </div>
+      <div class="field" style="margin-top:12px;">
+        <label for="registerHandle">Display name</label>
+        <input id="registerHandle" type="text" placeholder="Ari Chen">
+      </div>
+      <div class="field" style="margin-top:12px;">
+        <label for="registerStatus">Status</label>
+        <input id="registerStatus" type="text" placeholder="Working, Available, In a call">
+      </div>
+      <div class="auth-actions" style="margin-top:16px;">
+        <button class="button primary" id="registerBtn">Create Account</button>
+        <div class="auth-note" id="registerError"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
-<!-- TTT -->
-<div class="overlay" id="tttOverlay">
-  <button class="close-btn" onclick="exitGame()">EXIT</button>
-  <h1>TIC TAC TOE</h1>
-  <div id="tttStatus"></div>
-  <div id="tttCode"></div>
-  <div class="ttt-grid" id="tttGrid"></div>
-  <button onclick="resetTTT()">RESET</button>
+<div class="app">
+  <aside class="sidebar">
+    <div class="server active">WO</div>
+    <div class="server">UI</div>
+    <div class="server">HR</div>
+    <div class="server">DEV</div>
+    <div class="server">+</div>
+  </aside>
+
+  <aside class="channels">
+    <div class="brand">
+      <h1>WorkOnline</h1>
+      <span class="status-badge" id="onlineCount">Online 0</span>
+    </div>
+
+    <div class="section">
+      <h2>Friends</h2>
+      <div class="channel active" data-channel="general"># messages <span id="messageCount">0</span></div>
+      <div class="channel" data-channel="announcements"># announcements</div>
+    </div>
+
+    <div class="section">
+      <h2>Group Chats</h2>
+      <div class="channel" data-channel="project-orbit"># project-orbit</div>
+      <div class="channel" data-channel="design-lab"># design-lab</div>
+      <div class="channel" data-channel="support-squad"># support-squad</div>
+      <div class="channel" data-channel="study-session"># study-session</div>
+    </div>
+
+    <div class="section">
+      <h2>Voice Rooms</h2>
+      <div class="channel" data-voice="daily-sync">🎤 daily-sync <span class="pill" id="voiceCount">0 live</span></div>
+      <div class="channel" data-voice="focus-room">🎧 focus-room</div>
+    </div>
+
+    <div class="account">
+      <h3>Account</h3>
+      <div class="row">
+        <p>Signed in as <strong id="accountName">guest</strong></p>
+        <button class="button danger" id="signOutBtn">Sign out</button>
+      </div>
+      <p>Status: <span class="badge focus" id="accountStatus">Working</span></p>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="header">
+      <div>
+        <h2 id="activeChannel"># messages</h2>
+        <div class="tag">Real-time chat with friends and group channels.</div>
+      </div>
+      <div class="actions">
+        <button class="button" id="startVoiceBtn">Join Voice</button>
+        <button class="button primary" id="leaveVoiceBtn">Leave Voice</button>
+      </div>
+    </div>
+
+    <div class="chat" id="chatWindow"></div>
+
+    <div class="input">
+      <div class="input-box">
+        <input id="messageInput" type="text" placeholder="Message #messages">
+        <button class="button primary" id="sendBtn">Send</button>
+      </div>
+    </div>
+  </main>
+
+  <aside class="friends">
+    <div class="section">
+      <h2>Friends Online</h2>
+      <div id="friendsList"></div>
+    </div>
+
+    <div class="section">
+      <h2>Voice Room</h2>
+      <div class="voice-panel">
+        <div class="voice-row">
+          <div>
+            <div><strong id="voiceRoomName">daily-sync</strong></div>
+            <div class="voice-status" id="voiceStatus">Not connected</div>
+          </div>
+          <span class="badge" id="voiceBadge">Offline</span>
+        </div>
+        <div class="voice-status" id="voiceParticipants">0 listeners</div>
+      </div>
+    </div>
+  </aside>
 </div>
-
-<!-- BLACKJACK -->
-<div class="overlay" id="bjOverlay">
-  <button class="close-btn" onclick="exitGame()">EXIT</button>
-  <h1>BLACKJACK</h1>
-  <div id="bjStatus"></div>
-  <div>DEALER</div>
-  <div id="dealerCards"></div>
-  <div>PLAYER</div>
-  <div id="playerCards"></div>
-  <button onclick="bjHit()">HIT</button>
-  <button onclick="bjStand()">STAND</button>
-</div>
-<script>
-/* === FIREBASE === */
-firebase.initializeApp({
-  apiKey:"AIzaSyA7aPTCswKKsOAo9bIa64Td9iqVDkHro-M",
-  authDomain:"tic-toe-84c69.firebaseapp.com",
-  projectId:"tic-toe-84c69"
-});
-const db=firebase.firestore();
-firebase.auth().signInAnonymously();
-let uid=null;
-firebase.auth().onAuthStateChanged(u=>uid=u.uid);
-
-/* === UTIL === */
-function exitGame(){
-  document.querySelectorAll(".overlay").forEach(o=>o.classList.remove("active"));
-  if(unsub)unsub();
-}
-
-/* ===================== TTT ONLINE ===================== */
-let room,side,unsub;
-
-function openTTT(){
-  document.getElementById("tttOverlay").classList.add("active");
-  createTTTRoom();
-}
-
-async function createTTTRoom(){
-  room=Math.floor(1000+Math.random()*9000).toString();
-  side="X";
-  await db.collection("ttt_rooms").doc(room).set({
-    board:Array(9).fill(null),
-    turn:"X",
-    X:uid,
-    O:null,
-    status:"waiting"
-  });
-  listenTTT();
-}
-
-function listenTTT(){
-  document.getElementById("tttCode").innerText="ROOM: "+room;
-  unsub=db.collection("ttt_rooms").doc(room)
-    .onSnapshot(s=>{
-      const d=s.data();
-      renderTTT(d);
-    });
-}
-
-function renderTTT(d){
-  const grid=document.getElementById("tttGrid");
-  grid.innerHTML="";
-  d.board.forEach((v,i)=>{
-    const c=document.createElement("div");
-    c.className="ttt-cell";
-    c.innerText=v||"";
-    c.onclick=()=>moveTTT(i);
-    grid.appendChild(c);
-  });
-  document.getElementById("tttStatus").innerText=
-    d.status==="finished"?"GAME OVER":d.turn+"'s TURN";
-}
-
-async function moveTTT(i){
-  const ref=db.collection("ttt_rooms").doc(room);
-  await db.runTransaction(async t=>{
-    const d=(await t.get(ref)).data();
-    if(d.turn!==side||d.board[i])return;
-    d.board[i]=side;
-    d.turn=side==="X"?"O":"X";
-    t.update(ref,d);
-  });
-}
-
-async function resetTTT(){
-  await db.collection("ttt_rooms").doc(room).update({
-    board:Array(9).fill(null),
-    turn:"X",
-    status:"playing"
-  });
-}
-
-/* ===================== BLACKJACK ONLINE ===================== */
-let bjRoom;
-
-function openBJ(){
-  document.getElementById("bjOverlay").classList.add("active");
-  createBJRoom();
-}
-
-async function createBJRoom(){
-  bjRoom=Math.floor(1000+Math.random()*9000).toString();
-  await db.collection("bj_rooms").doc(bjRoom).set({
-    deck:shuffle([...Array(52).keys()]),
-    dealer:[],
-    player:[],
-    turn:"player",
-    status:"playing"
-  });
-  listenBJ();
-}
-
-function listenBJ(){
-  db.collection("bj_rooms").doc(bjRoom)
-    .onSnapshot(s=>{
-      const d=s.data();
-      renderBJ(d);
-    });
-}
-
-function val(c){let v=c%13+1;return v>10?10:v===1?11:v}
-function score(h){
-  let s=h.reduce((a,c)=>a+val(c),0);
-  let ac=h.filter(c=>c%13===0).length;
-  while(s>21&&ac--)s-=10;
-  return s;
-}
-
-function renderBJ(d){
-  dealerCards.innerHTML=d.dealer.map(c=>`<span class="card">${val(c)}</span>`).join("");
-  playerCards.innerHTML=d.player.map(c=>`<span class="card">${val(c)}</span>`).join("");
-  bjStatus.innerText=d.status;
-}
-
-async function bjHit(){
-  const ref=db.collection("bj_rooms").doc(bjRoom);
-  await db.runTransaction(async t=>{
-    const d=(await t.get(ref)).data();
-    d.player.push(d.deck.pop());
-    if(score(d.player)>21)d.status="PLAYER BUST";
-    t.update(ref,d);
-  });
-}
-
-async function bjStand(){
-  const ref=db.collection("bj_rooms").doc(bjRoom);
-  await db.runTransaction(async t=>{
-    const d=(await t.get(ref)).data();
-    while(score(d.dealer)<17)d.dealer.push(d.deck.pop());
-    d.status=score(d.dealer)>=score(d.player)?"DEALER WINS":"PLAYER WINS";
-    t.update(ref,d);
-  });
-}
-
-function shuffle(a){for(let i=a.length-1;i>0;i--){let j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
-</script>
+<script src="app.js"></script>
 </body>
 </html>
