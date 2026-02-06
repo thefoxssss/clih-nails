@@ -130,7 +130,17 @@
   <aside class="friends">
     <div class="section">
       <h2>Friends Online</h2>
+      <div class="friend-actions">
+        <input id="friendHandleInput" type="text" placeholder="Add friend by handle">
+        <button class="button" id="addFriendBtn">Add</button>
+      </div>
+      <div class="auth-note" id="friendsError"></div>
       <div id="friendsList"></div>
+    </div>
+
+    <div class="section">
+      <h2>Direct Messages</h2>
+      <div id="dmList"></div>
     </div>
 
     <div class="section">

@@ -38,6 +38,14 @@ const voiceBadge = document.getElementById("voiceBadge");
 const voiceParticipants = document.getElementById("voiceParticipants");
 const voiceRoomName = document.getElementById("voiceRoomName");
 const voiceCount = document.getElementById("voiceCount");
+const friendHandleInput = document.getElementById("friendHandleInput");
+const addFriendBtn = document.getElementById("addFriendBtn");
+const friendsError = document.getElementById("friendsError");
+const dmList = document.getElementById("dmList");
+
+let currentChannelId = "general";
+let currentChannelType = "channel";
+let currentChannelLabel = "messages";
 
 let currentChannel = "general";
 let currentVoiceRoom = "daily-sync";
@@ -45,6 +53,10 @@ let currentUser = null;
 let unsubscribeMessages = null;
 let unsubscribePresence = null;
 let unsubscribeVoice = null;
+let unsubscribeFriends = null;
+let localStream = null;
+let peerConnections = {};
+const remoteAudioElements = new Set();
 let localStream = null;
 let peerConnections = {};
 
@@ -94,6 +106,7 @@ registerBtn.addEventListener("click", async () => {
     await db.collection("users").doc(credential.user.uid).set({
       handle,
       status,
+      email,
       online: true,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
@@ -113,6 +126,18 @@ signOutBtn.addEventListener("click", async () => {
   await auth.signOut();
 });
 
+function renderMessage(messageId, data){
+  const wrapper = document.createElement("div");
+  wrapper.className = "message";
+  const canDelete = currentUser && data.uid === currentUser.uid;
+  wrapper.innerHTML = `
+    <div class="avatar">${(data.handle || "?").slice(0,2).toUpperCase()}</div>
+    <div>
+      <div class="meta">
+        <span class="name">${data.handle || "Unknown"}</span>
+        <span class="time">${data.createdAt ? data.createdAt.toDate().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}) : ""}</span>
+        ${canDelete ? `<button class="message-action" data-message-id="${messageId}" title="Delete message">Delete</button>` : ""}
+      </div>
 function renderMessage(data){
   const wrapper = document.createElement("div");
   wrapper.className = "message";
@@ -131,11 +156,13 @@ function subscribeToMessages(){
     unsubscribeMessages();
   }
   chatWindow.innerHTML = "";
+  unsubscribeMessages = getMessageCollection()
   unsubscribeMessages = db.collection("channels").doc(currentChannel).collection("messages")
     .orderBy("createdAt", "asc")
     .limitToLast(50)
     .onSnapshot(snapshot => {
       chatWindow.innerHTML = "";
+      snapshot.forEach(doc => renderMessage(doc.id, doc.data()));
       snapshot.forEach(doc => renderMessage(doc.data()));
       chatWindow.scrollTop = chatWindow.scrollHeight;
       messageCount.textContent = snapshot.size;
@@ -149,6 +176,7 @@ async function sendMessage(){
   }
   const userDoc = await db.collection("users").doc(currentUser.uid).get();
   const userData = userDoc.data();
+  await getMessageCollection().add({
   await db.collection("channels").doc(currentChannel).collection("messages").add({
     text,
     handle: userData?.handle || currentUser.email,
@@ -158,10 +186,35 @@ async function sendMessage(){
   messageInput.value = "";
 }
 
+function getMessageCollection(){
+  if(currentChannelType === "dm"){
+    return db.collection("dms").doc(currentChannelId).collection("messages");
+  }
+  return db.collection("channels").doc(currentChannelId).collection("messages");
+}
+
 sendBtn.addEventListener("click", sendMessage);
 messageInput.addEventListener("keydown", (event) => {
   if(event.key === "Enter"){
     sendMessage();
+  }
+});
+
+chatWindow.addEventListener("click", (event) => {
+  const button = event.target.closest(".message-action");
+  if(!button){
+    return;
+  }
+  const messageId = button.dataset.messageId;
+  if(messageId){
+    getMessageCollection().doc(messageId).delete();
+  }
+});
+
+addFriendBtn.addEventListener("click", addFriendByHandle);
+friendHandleInput.addEventListener("keydown", (event) => {
+  if(event.key === "Enter"){
+    addFriendByHandle();
   }
 });
 
@@ -189,6 +242,112 @@ function subscribeToPresence(){
     });
 }
 
+function subscribeToFriends(){
+  if(!currentUser){
+    return;
+  }
+  if(unsubscribeFriends){
+    unsubscribeFriends();
+  }
+  unsubscribeFriends = db.collection("users").doc(currentUser.uid).collection("friends")
+    .onSnapshot(snapshot => {
+      dmList.innerHTML = "";
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const dmItem = document.createElement("button");
+        dmItem.className = "dm-item";
+        dmItem.type = "button";
+        dmItem.innerHTML = `
+          <span class="dm-name">${data.handle || data.email || "Unknown"}</span>
+          <span class="dm-meta">${data.status || "Offline"}</span>
+          <span class="dm-actions">
+            <button class="dm-call" type="button">Call</button>
+          </span>
+        `;
+        dmItem.addEventListener("click", (event) => {
+          if(event.target.closest(".dm-call")){
+            callFriend(doc.id, data.handle || data.email || "DM");
+            return;
+          }
+          setDmChannel(doc.id, data.handle || data.email || "DM");
+        });
+        dmList.appendChild(dmItem);
+      });
+    });
+}
+
+function buildDmId(uidA, uidB){
+  return [uidA, uidB].sort().join("-");
+}
+
+function setDmChannel(friendUid, label){
+  if(!currentUser){
+    return;
+  }
+  currentChannelId = buildDmId(currentUser.uid, friendUid);
+  currentChannelType = "dm";
+  currentChannelLabel = label;
+  activeChannelLabel.textContent = `@ ${label}`;
+  messageInput.placeholder = `Message @${label}`;
+  document.querySelectorAll(".channel").forEach(channel => channel.classList.remove("active"));
+  subscribeToMessages();
+}
+
+function callFriend(friendUid, label){
+  if(!currentUser){
+    return;
+  }
+  const dmRoom = `dm-${buildDmId(currentUser.uid, friendUid)}`;
+  setVoiceRoom(dmRoom);
+  voiceRoomName.textContent = `Call with ${label}`;
+  joinVoice();
+}
+
+async function addFriendByHandle(){
+  if(!currentUser){
+    return;
+  }
+  const handle = friendHandleInput.value.trim();
+  if(!handle){
+    friendsError.textContent = "Enter a handle to add.";
+    return;
+  }
+  friendsError.textContent = "";
+  const snapshot = await db.collection("users").where("handle", "==", handle).limit(1).get();
+  if(snapshot.empty){
+    friendsError.textContent = "No user found with that handle.";
+    return;
+  }
+  const friendDoc = snapshot.docs[0];
+  if(friendDoc.id === currentUser.uid){
+    friendsError.textContent = "You cannot add yourself.";
+    return;
+  }
+  const friendData = friendDoc.data();
+  const currentUserDoc = await db.collection("users").doc(currentUser.uid).get();
+  const currentData = currentUserDoc.data() || {};
+
+  await db.collection("users").doc(currentUser.uid).collection("friends").doc(friendDoc.id).set({
+    handle: friendData.handle || handle,
+    email: friendData.email || "",
+    status: friendData.status || "Offline"
+  }, { merge: true });
+
+  await db.collection("users").doc(friendDoc.id).collection("friends").doc(currentUser.uid).set({
+    handle: currentData.handle || currentUser.email,
+    email: currentData.email || currentUser.email,
+    status: currentData.status || "Online"
+  }, { merge: true });
+
+  friendHandleInput.value = "";
+}
+
+function setChannel(name, label = name){
+  currentChannelId = name;
+  currentChannelType = "channel";
+  currentChannelLabel = label;
+  activeChannelLabel.textContent = `# ${label}`;
+  messageInput.placeholder = `Message #${label}`;
 function setChannel(name){
   currentChannel = name;
   activeChannelLabel.textContent = `# ${name}`;
@@ -240,6 +399,13 @@ async function joinVoice(){
   await db.collection("voiceRooms").doc(currentVoiceRoom).collection("participants").doc(currentUser.uid).set({
     joinedAt: firebase.firestore.FieldValue.serverTimestamp()
   });
+  const roomRef = db.collection("voiceRooms").doc(currentVoiceRoom);
+  const roomSnapshot = await roomRef.get();
+  if(roomSnapshot.exists && roomSnapshot.data()?.offer){
+    await answerCall();
+  } else {
+    await startWebRTC();
+  }
   await startWebRTC();
   voiceStatus.textContent = "Connected";
 }
@@ -256,6 +422,8 @@ async function leaveVoice(){
     localStream.getTracks().forEach(track => track.stop());
   }
   localStream = null;
+  remoteAudioElements.forEach(audio => audio.remove());
+  remoteAudioElements.clear();
 }
 
 startVoiceBtn.addEventListener("click", joinVoice);
@@ -283,6 +451,9 @@ async function startWebRTC(){
     audio.srcObject = event.streams[0];
     audio.autoplay = true;
     audio.controls = false;
+    audio.classList.add("remote-audio");
+    document.body.appendChild(audio);
+    remoteAudioElements.add(audio);
     document.body.appendChild(audio);
   };
 
@@ -336,6 +507,9 @@ async function answerCall(){
     audio.srcObject = event.streams[0];
     audio.autoplay = true;
     audio.controls = false;
+    audio.classList.add("remote-audio");
+    document.body.appendChild(audio);
+    remoteAudioElements.add(audio);
     document.body.appendChild(audio);
   };
 
@@ -366,6 +540,38 @@ async function syncVoiceRoomOffer(){
   });
 }
 
+async function ensureUserProfile(user){
+  if(!user){
+    return;
+  }
+  const userRef = db.collection("users").doc(user.uid);
+  const doc = await userRef.get();
+  if(!doc.exists){
+    await userRef.set({
+      handle: user.email?.split("@")[0] || "New User",
+      status: "Working",
+      email: user.email,
+      online: true,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    return;
+  }
+  const data = doc.data();
+  const updates = {};
+  if(!data?.email && user.email){
+    updates.email = user.email;
+  }
+  if(Object.keys(updates).length){
+    updates.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+    await userRef.set(updates, { merge: true });
+  }
+}
+
+async function showApp(user){
+  currentUser = user;
+  authOverlay.classList.add("hidden");
+  if(user){
+    await ensureUserProfile(user);
 function showApp(user){
   currentUser = user;
   authOverlay.classList.add("hidden");
@@ -381,6 +587,8 @@ function showApp(user){
     });
   }
   subscribeToPresence();
+  subscribeToFriends();
+  setChannel(currentChannelId);
   setChannel(currentChannel);
   subscribeToVoiceRoom();
   syncVoiceRoomOffer();
@@ -391,6 +599,8 @@ function resetApp(){
   authOverlay.classList.remove("hidden");
   accountName.textContent = "guest";
   accountStatus.textContent = "Offline";
+  dmList.innerHTML = "";
+  friendsError.textContent = "";
   if(unsubscribeMessages){
     unsubscribeMessages();
   }
@@ -399,6 +609,9 @@ function resetApp(){
   }
   if(unsubscribeVoice){
     unsubscribeVoice();
+  }
+  if(unsubscribeFriends){
+    unsubscribeFriends();
   }
 }
 
