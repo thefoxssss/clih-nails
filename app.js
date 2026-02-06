@@ -75,6 +75,7 @@ loginBtn.addEventListener("click", async () => {
     await auth.signInWithEmailAndPassword(email, password);
   } catch (error) {
     loginError.textContent = formatAuthError(error);
+    loginError.textContent = error.message;
   }
 });
 
@@ -98,6 +99,7 @@ registerBtn.addEventListener("click", async () => {
     });
   } catch (error) {
     registerError.textContent = formatAuthError(error);
+    registerError.textContent = error.message;
   }
 });
 
