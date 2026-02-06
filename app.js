@@ -33,6 +33,7 @@ const activeChannelLabel = document.getElementById("activeChannel");
 const messageCount = document.getElementById("messageCount");
 const startVoiceBtn = document.getElementById("startVoiceBtn");
 const leaveVoiceBtn = document.getElementById("leaveVoiceBtn");
+const dmCallBtn = document.getElementById("dmCallBtn");
 const voiceStatus = document.getElementById("voiceStatus");
 const voiceBadge = document.getElementById("voiceBadge");
 const voiceParticipants = document.getElementById("voiceParticipants");
@@ -42,6 +43,18 @@ const friendHandleInput = document.getElementById("friendHandleInput");
 const addFriendBtn = document.getElementById("addFriendBtn");
 const friendsError = document.getElementById("friendsError");
 const dmList = document.getElementById("dmList");
+const profileAvatar = document.getElementById("profileAvatar");
+const profileName = document.getElementById("profileName");
+const profileHandle = document.getElementById("profileHandle");
+const profileStatus = document.getElementById("profileStatus");
+
+let currentChannelId = null;
+let currentChannelType = "dm";
+let currentChannelLabel = "Select a friend";
+let currentVoiceRoom = "daily-sync";
+let currentUser = null;
+let activeFriend = null;
+let unsubscribeMessages = null;
 
 let currentChannelId = "general";
 let currentChannelType = "channel";
@@ -156,6 +169,13 @@ function subscribeToMessages(){
     unsubscribeMessages();
   }
   chatWindow.innerHTML = "";
+  if(!currentChannelId){
+    if(messageCount){
+      messageCount.textContent = "0";
+    }
+    return;
+  }
+  unsubscribeMessages = getMessageCollection()
   unsubscribeMessages = getMessageCollection()
   unsubscribeMessages = db.collection("channels").doc(currentChannel).collection("messages")
     .orderBy("createdAt", "asc")
@@ -163,6 +183,10 @@ function subscribeToMessages(){
     .onSnapshot(snapshot => {
       chatWindow.innerHTML = "";
       snapshot.forEach(doc => renderMessage(doc.id, doc.data()));
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+      if(messageCount){
+        messageCount.textContent = snapshot.size;
+      }
       snapshot.forEach(doc => renderMessage(doc.data()));
       chatWindow.scrollTop = chatWindow.scrollHeight;
       messageCount.textContent = snapshot.size;
@@ -171,6 +195,7 @@ function subscribeToMessages(){
 
 async function sendMessage(){
   const text = messageInput.value.trim();
+  if(!text || !currentUser || !currentChannelId){
   if(!text || !currentUser){
     return;
   }
@@ -251,6 +276,30 @@ function subscribeToFriends(){
   }
   unsubscribeFriends = db.collection("users").doc(currentUser.uid).collection("friends")
     .onSnapshot(snapshot => {
+      friendsList.innerHTML = "";
+      dmList.innerHTML = "";
+      let onlineTotal = 0;
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const friendRow = document.createElement("div");
+        friendRow.className = "friend";
+        friendRow.innerHTML = `
+          <div class="avatar">${(data.handle || "?").slice(0,2).toUpperCase()}</div>
+          <div>
+            <div>${data.handle || "Unknown"}</div>
+            <small>${data.status || "Offline"}</small>
+          </div>
+        `;
+        friendRow.addEventListener("click", () => {
+          activeFriend = { uid: doc.id, label: data.handle || data.email || "Friend", handle: data.handle || "" };
+          updateProfilePanel({ label: data.handle || "Friend", handle: data.handle || "", status: data.status || "Offline" });
+          setDmChannel(doc.id, data.handle || data.email || "DM");
+        });
+        friendsList.appendChild(friendRow);
+
+        if((data.status || "").toLowerCase() === "online"){
+          onlineTotal += 1;
+        }
       dmList.innerHTML = "";
       snapshot.forEach(doc => {
         const data = doc.data();
@@ -269,10 +318,13 @@ function subscribeToFriends(){
             callFriend(doc.id, data.handle || data.email || "DM");
             return;
           }
+          activeFriend = { uid: doc.id, label: data.handle || data.email || "DM", handle: data.handle || data.email || "" };
+          updateProfilePanel({ label: data.handle || data.email || "DM", handle: data.handle || data.email || "", status: data.status || "Offline" });
           setDmChannel(doc.id, data.handle || data.email || "DM");
         });
         dmList.appendChild(dmItem);
       });
+      onlineCount.textContent = `Friends ${snapshot.size}`;
     });
 }
 
@@ -289,6 +341,11 @@ function setDmChannel(friendUid, label){
   currentChannelLabel = label;
   activeChannelLabel.textContent = `@ ${label}`;
   messageInput.placeholder = `Message @${label}`;
+  dmCallBtn.classList.remove("hidden");
+  subscribeToMessages();
+}
+
+
   document.querySelectorAll(".channel").forEach(channel => channel.classList.remove("active"));
   subscribeToMessages();
 }
@@ -302,6 +359,20 @@ function callFriend(friendUid, label){
   voiceRoomName.textContent = `Call with ${label}`;
   joinVoice();
 }
+
+dmCallBtn.addEventListener("click", () => {
+  if(activeFriend){
+    callFriend(activeFriend.uid, activeFriend.label);
+  }
+});
+
+function updateProfilePanel(profile){
+  profileAvatar.textContent = (profile?.label || "ME").slice(0,2).toUpperCase();
+  profileName.textContent = profile?.label || "You";
+  profileHandle.textContent = profile?.handle ? `@${profile.handle}` : "@handle";
+  profileStatus.textContent = profile?.status || "Working";
+}
+
 
 async function addFriendByHandle(){
   if(!currentUser){
@@ -340,6 +411,12 @@ async function addFriendByHandle(){
   }, { merge: true });
 
   friendHandleInput.value = "";
+}
+
+function setVoiceRoom(name){
+  currentVoiceRoom = name;
+  voiceRoomName.textContent = name;
+  subscribeToVoiceRoom();
 }
 
 function setChannel(name, label = name){
@@ -584,6 +661,18 @@ function showApp(user){
       const data = doc.data();
       accountName.textContent = data?.handle || user.email;
       accountStatus.textContent = data?.status || "Working";
+      updateProfilePanel({
+        uid: user.uid,
+        label: data?.handle || user.email,
+        handle: data?.handle || user.email,
+        status: data?.status || "Working"
+      });
+    });
+  }
+  subscribeToFriends();
+  activeChannelLabel.textContent = "Select a friend";
+  messageInput.placeholder = "Select a DM to start chatting";
+  currentChannelId = null;
     });
   }
   subscribeToPresence();
@@ -596,11 +685,18 @@ function showApp(user){
 
 function resetApp(){
   currentUser = null;
+  activeFriend = null;
   authOverlay.classList.remove("hidden");
   accountName.textContent = "guest";
   accountStatus.textContent = "Offline";
   dmList.innerHTML = "";
   friendsError.textContent = "";
+  dmCallBtn.classList.add("hidden");
+  updateProfilePanel({ label: "You", handle: "handle", status: "Offline" });
+  onlineCount.textContent = "Online 0";
+  if(unsubscribeMessages){
+    unsubscribeMessages();
+  }
   if(unsubscribeMessages){
     unsubscribeMessages();
   }

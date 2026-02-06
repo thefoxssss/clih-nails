@@ -18,6 +18,13 @@ body{
 }
 .app{
   display:grid;
+  grid-template-columns:320px 1fr 280px;
+  height:100vh;
+}
+.channels,.friends{
+  background:var(--panel);
+  border-right:1px solid #0b0d13;
+}
   grid-template-columns:90px 240px 1fr 280px;
   height:100vh;
 }
@@ -245,11 +252,38 @@ body{
 }
 .hidden{display:none}
 
+.profile-card{
+  display:flex;
+  gap:12px;
+  align-items:center;
+  padding:12px;
+  border-radius:14px;
+  background:var(--panel-light);
+}
+.profile-avatar{
+  width:44px;
+  height:44px;
+  border-radius:14px;
+  background:#0f121b;
+  display:grid;
+  place-items:center;
+  font-weight:600;
+}
+.profile-name{
+  font-weight:600;
+}
+.profile-handle,
+.profile-status{
+  font-size:12px;
+  color:var(--muted);
+}
+
 .friend-actions{
   display:flex;
   gap:8px;
   align-items:center;
   margin-bottom:8px;
+  flex-wrap:wrap;
 }
 .friend-actions input{
   flex:1;
@@ -258,6 +292,7 @@ body{
   border-radius:10px;
   padding:8px 10px;
   color:var(--text);
+  min-width:160px;
 }
 .dm-item{
   width:100%;
@@ -296,6 +331,7 @@ body{
   font-size:11px;
   cursor:pointer;
 }
+
 
 .voice-panel{
   background:var(--panel-light);

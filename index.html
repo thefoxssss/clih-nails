@@ -15,6 +15,7 @@
   <div class="auth-card">
     <div>
       <h2 style="margin:0 0 6px 0;">Welcome to WorkOnline</h2>
+      <div class="auth-note">Sign in to start direct messages and one-to-one calls.</div>
       <div class="auth-note">Connect your Firebase project for real-time accounts, chat, and voice channels.</div>
     </div>
     <div class="auth-tabs">
@@ -61,6 +62,10 @@
 </div>
 
 <div class="app">
+  <aside class="channels">
+    <div class="brand">
+      <h1>WorkOnline</h1>
+      <span class="status-badge" id="onlineCount">Friends 0</span>
   <aside class="sidebar">
     <div class="server active">WO</div>
     <div class="server">UI</div>
@@ -77,6 +82,17 @@
 
     <div class="section">
       <h2>Friends</h2>
+      <div class="friend-actions">
+        <input id="friendHandleInput" type="text" placeholder="Add friend by handle">
+        <button class="button" id="addFriendBtn">Add</button>
+      </div>
+      <div class="auth-note" id="friendsError"></div>
+      <div id="friendsList"></div>
+    </div>
+
+    <div class="section">
+      <h2>Direct Messages</h2>
+      <div id="dmList"></div>
       <div class="channel active" data-channel="general"># messages <span id="messageCount">0</span></div>
       <div class="channel" data-channel="announcements"># announcements</div>
     </div>
@@ -108,6 +124,13 @@
   <main class="main">
     <div class="header">
       <div>
+        <h2 id="activeChannel">Select a friend</h2>
+        <div class="tag">Direct message and call your friends.</div>
+      </div>
+      <div class="actions">
+        <button class="button success hidden" id="dmCallBtn">Call Friend</button>
+        <button class="button" id="startVoiceBtn">Join Call</button>
+        <button class="button primary" id="leaveVoiceBtn">Leave Call</button>
         <h2 id="activeChannel"># messages</h2>
         <div class="tag">Real-time chat with friends and group channels.</div>
       </div>
@@ -121,6 +144,7 @@
 
     <div class="input">
       <div class="input-box">
+        <input id="messageInput" type="text" placeholder="Select a DM to start chatting">
         <input id="messageInput" type="text" placeholder="Message #messages">
         <button class="button primary" id="sendBtn">Send</button>
       </div>
@@ -129,6 +153,23 @@
 
   <aside class="friends">
     <div class="section">
+      <h2>Profile</h2>
+      <div class="profile-card">
+        <div class="profile-avatar" id="profileAvatar">ME</div>
+        <div>
+          <div class="profile-name" id="profileName">You</div>
+          <div class="profile-handle" id="profileHandle">@handle</div>
+          <div class="profile-status" id="profileStatus">Working</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Call Status</h2>
+      <div class="voice-panel">
+        <div class="voice-row">
+          <div>
+            <div><strong id="voiceRoomName">No active call</strong></div>
       <h2>Friends Online</h2>
       <div class="friend-actions">
         <input id="friendHandleInput" type="text" placeholder="Add friend by handle">
