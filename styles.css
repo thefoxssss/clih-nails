@@ -18,32 +18,12 @@ body{
 }
 .app{
   display:grid;
-  grid-template-columns:90px 260px 1fr 300px;
+  grid-template-columns:320px 1fr 300px;
   height:100vh;
 }
-.sidebar,.channels,.friends{
+.channels,.friends{
   background:var(--panel);
   border-right:1px solid #070707;
-}
-.sidebar{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:14px;
-  padding:18px 0;
-}
-.server{
-  width:56px;height:56px;border-radius:18px;
-  background:var(--panel-light);
-  display:grid;place-items:center;
-  color:var(--text);
-  font-weight:700;
-  border:1px solid transparent;
-}
-.server.active{
-  background:rgba(29,185,84,0.15);
-  border-color:rgba(29,185,84,0.5);
-  color:var(--accent);
 }
 .channels{
   padding:20px;
@@ -53,11 +33,17 @@ body{
 }
 .brand{
   display:flex;
-  align-items:center;
+  align-items:flex-start;
   justify-content:space-between;
+  gap:12px;
 }
 .brand h1{
   font-size:18px;margin:0
+}
+.brand-subtitle{
+  margin:4px 0 0 0;
+  font-size:12px;
+  color:var(--muted);
 }
 .status-badge{
   font-size:12px;
@@ -73,19 +59,6 @@ body{
   color:var(--muted);
   margin:0 0 10px 0;
 }
-.channel{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:8px;
-  padding:8px 10px;
-  border-radius:10px;
-  color:var(--text);
-  background:transparent;
-  cursor:pointer;
-}
-.channel.active{background:var(--panel-light)}
-.channel span{color:var(--muted);font-size:12px}
 .account{
   margin-top:auto;
   padding:12px;
@@ -340,11 +313,4 @@ body{
 .voice-status{
   font-size:12px;
   color:var(--muted);
-}
-.pill{
-  font-size:11px;
-  padding:3px 8px;
-  border-radius:999px;
-  background:rgba(29,185,84,0.2);
-  color:var(--accent);
 }
