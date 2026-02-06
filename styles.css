@@ -25,6 +25,28 @@ body{
   background:var(--panel);
   border-right:1px solid #0b0d13;
 }
+  grid-template-columns:90px 240px 1fr 280px;
+  height:100vh;
+}
+.sidebar,.channels,.friends{
+  background:var(--panel);
+  border-right:1px solid #0b0d13;
+}
+.sidebar{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:14px;
+  padding:18px 0;
+}
+.server{
+  width:56px;height:56px;border-radius:18px;
+  background:var(--panel-light);
+  display:grid;place-items:center;
+  color:var(--text);
+  font-weight:700;
+}
+.server.active{background:var(--accent)}
 .channels{
   padding:20px;
   display:flex;
