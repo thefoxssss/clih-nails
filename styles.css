@@ -39,7 +39,12 @@ body {
 .topbar h1 { margin: 0; font-size: 1.3rem; letter-spacing: 0.03em; text-transform: uppercase; }
 .topbar p { margin: 3px 0 0; color: var(--muted); font-size: 0.94rem; }
 
-.actions { display: flex; gap: 10px; }
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
 button, select, input {
   border: 1px solid #355075;
   border-radius: 7px;
@@ -107,6 +112,20 @@ button.primary {
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-bottom: 8px;
+}
+.control-row.single {
+  grid-template-columns: 1fr;
+}
+
+.checkbox-row {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--text);
+}
+.checkbox-row input {
+  width: auto;
 }
 
 .hint {

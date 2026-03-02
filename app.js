@@ -11,10 +11,21 @@ const officerNameInput = document.getElementById("officerName");
 const exportBtn = document.getElementById("exportBtn");
 const clearBtn = document.getElementById("clearBtn");
 const undoBtn = document.getElementById("undoBtn");
+const saveBtn = document.getElementById("saveBtn");
+const loadBtn = document.getElementById("loadBtn");
+const loadFileInput = document.getElementById("loadFileInput");
 const rotateLeftBtn = document.getElementById("rotateLeftBtn");
 const rotateRightBtn = document.getElementById("rotateRightBtn");
 const bringFrontBtn = document.getElementById("bringFrontBtn");
 const sendBackBtn = document.getElementById("sendBackBtn");
+const duplicateBtn = document.getElementById("duplicateBtn");
+const showGridInput = document.getElementById("showGrid");
+const snapGridInput = document.getElementById("snapGrid");
+const gridSizeInput = document.getElementById("gridSize");
+const inspectorX = document.getElementById("inspectorX");
+const inspectorY = document.getElementById("inspectorY");
+const inspectorRotation = document.getElementById("inspectorRotation");
+const inspectorLabel = document.getElementById("inspectorLabel");
 
 reportDateInput.valueAsDate = new Date();
 
@@ -43,6 +54,12 @@ function uid() {
   return crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
 }
 
+function snap(value) {
+  if (!snapGridInput.checked) return value;
+  const size = Number(gridSizeInput.value) || 24;
+  return Math.round(value / size) * size;
+}
+
 function setTool(tool) {
   activeTool = tool;
   toolButtons.forEach((btn) => btn.classList.toggle("active", btn.dataset.tool === tool));
@@ -52,11 +69,31 @@ function selectedItem() {
   return items.find((entry) => entry.id === selectedId);
 }
 
-function rotateSelected(direction) {
+function refreshInspector() {
+  const item = selectedItem();
+  const hasSelection = Boolean(item);
+  [inspectorX, inspectorY, inspectorRotation, inspectorLabel].forEach((input) => {
+    input.disabled = !hasSelection;
+  });
+  if (!item) {
+    inspectorX.value = "";
+    inspectorY.value = "";
+    inspectorRotation.value = "";
+    inspectorLabel.value = "";
+    return;
+  }
+  inspectorX.value = Math.round(item.x);
+  inspectorY.value = Math.round(item.y);
+  inspectorRotation.value = Math.round(((item.rotation || 0) * 180) / Math.PI);
+  inspectorLabel.value = item.type === "text" ? item.text || "" : item.label || "";
+}
+
+function rotateSelected(direction, snapStep = false) {
   const item = selectedItem();
   if (!item) return;
   saveSnapshot();
-  item.rotation += direction * 0.12;
+  const step = snapStep ? Math.PI / 12 : 0.12;
+  item.rotation += direction * step;
   draw();
 }
 
@@ -70,12 +107,87 @@ function moveLayer(toFront) {
   draw();
 }
 
+function duplicateSelected() {
+  const item = selectedItem();
+  if (!item) return;
+  saveSnapshot();
+  const clone = {
+    ...item,
+    id: uid(),
+    x: snap(item.x + 32),
+    y: snap(item.y + 24)
+  };
+  if (clone.type !== "text") {
+    clone.label = `V${vehicleCounter++}`;
+  }
+  items.push(clone);
+  selectedId = clone.id;
+  draw();
+}
+
+function downloadJson() {
+  const payload = {
+    metadata: {
+      reportNumber: reportNumberInput.value,
+      reportDate: reportDateInput.value,
+      reportLocation: reportLocationInput.value,
+      officerName: officerNameInput.value,
+      roadType: roadTypeSelect.value,
+      weather: weatherSelect.value,
+      light: lightSelect.value,
+      showGrid: showGridInput.checked,
+      snapGrid: snapGridInput.checked,
+      gridSize: Number(gridSizeInput.value) || 24,
+      vehicleCounter
+    },
+    items
+  };
+  const link = document.createElement("a");
+  link.download = `police-crash-report-${Date.now()}.json`;
+  link.href = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }));
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+
+function loadFromJson(text) {
+  const parsed = JSON.parse(text);
+  saveSnapshot();
+  items = Array.isArray(parsed.items) ? parsed.items : [];
+  const metadata = parsed.metadata || {};
+  reportNumberInput.value = metadata.reportNumber || reportNumberInput.value;
+  reportDateInput.value = metadata.reportDate || reportDateInput.value;
+  reportLocationInput.value = metadata.reportLocation || reportLocationInput.value;
+  officerNameInput.value = metadata.officerName || officerNameInput.value;
+  roadTypeSelect.value = metadata.roadType || roadTypeSelect.value;
+  weatherSelect.value = metadata.weather || weatherSelect.value;
+  lightSelect.value = metadata.light || lightSelect.value;
+  showGridInput.checked = metadata.showGrid !== false;
+  snapGridInput.checked = Boolean(metadata.snapGrid);
+  gridSizeInput.value = metadata.gridSize || gridSizeInput.value;
+  vehicleCounter = Number(metadata.vehicleCounter) || 1;
+  selectedId = null;
+  draw();
+}
+
 toolButtons.forEach((btn) => btn.addEventListener("click", () => setTool(btn.dataset.tool)));
 undoBtn.addEventListener("click", undo);
+saveBtn.addEventListener("click", downloadJson);
+loadBtn.addEventListener("click", () => loadFileInput.click());
+loadFileInput.addEventListener("change", async (event) => {
+  const [file] = event.target.files;
+  if (!file) return;
+  try {
+    loadFromJson(await file.text());
+  } catch {
+    alert("Unable to read that JSON file.");
+  }
+  loadFileInput.value = "";
+});
 rotateLeftBtn.addEventListener("click", () => rotateSelected(-1));
 rotateRightBtn.addEventListener("click", () => rotateSelected(1));
 bringFrontBtn.addEventListener("click", () => moveLayer(true));
 sendBackBtn.addEventListener("click", () => moveLayer(false));
+duplicateBtn.addEventListener("click", duplicateSelected);
 
 clearBtn.addEventListener("click", () => {
   saveSnapshot();
@@ -92,9 +204,34 @@ exportBtn.addEventListener("click", () => {
   link.click();
 });
 
-[roadTypeSelect, weatherSelect, lightSelect, reportNumberInput, reportDateInput, reportLocationInput, officerNameInput].forEach((input) => {
+[
+  roadTypeSelect,
+  weatherSelect,
+  lightSelect,
+  reportNumberInput,
+  reportDateInput,
+  reportLocationInput,
+  officerNameInput,
+  showGridInput,
+  snapGridInput,
+  gridSizeInput
+].forEach((input) => {
   input.addEventListener("change", draw);
   input.addEventListener("input", draw);
+});
+
+[inspectorX, inspectorY, inspectorRotation, inspectorLabel].forEach((input) => {
+  input.addEventListener("change", () => {
+    const item = selectedItem();
+    if (!item) return;
+    saveSnapshot();
+    item.x = Number(inspectorX.value) || item.x;
+    item.y = Number(inspectorY.value) || item.y;
+    item.rotation = ((Number(inspectorRotation.value) || 0) * Math.PI) / 180;
+    if (item.type === "text") item.text = inspectorLabel.value || item.text;
+    else item.label = inspectorLabel.value || item.label;
+    draw();
+  });
 });
 
 canvas.addEventListener("mousedown", (event) => {
@@ -116,19 +253,19 @@ canvas.addEventListener("mousedown", (event) => {
   if (activeTool === "text") {
     const label = prompt("Enter label text:", "Point of Impact");
     if (!label) return;
-    items.push({ id: uid(), type: "text", text: label, x: pos.x, y: pos.y, rotation: 0 });
+    items.push({ id: uid(), type: "text", text: label, x: snap(pos.x), y: snap(pos.y), rotation: 0 });
   } else if (activeTool === "arrow") {
-    items.push({ id: uid(), type: "arrow", x: pos.x, y: pos.y, width: 90, height: 14, rotation: 0 });
+    items.push({ id: uid(), type: "arrow", x: snap(pos.x), y: snap(pos.y), width: 90, height: 14, rotation: 0 });
   } else if (activeTool === "skid") {
-    items.push({ id: uid(), type: "skid", x: pos.x, y: pos.y, width: 84, height: 8, rotation: Math.PI / 8 });
+    items.push({ id: uid(), type: "skid", x: snap(pos.x), y: snap(pos.y), width: 84, height: 8, rotation: Math.PI / 8 });
   } else if (activeTool === "cone") {
-    items.push({ id: uid(), type: "cone", x: pos.x, y: pos.y, width: 22, height: 22, rotation: 0 });
+    items.push({ id: uid(), type: "cone", x: snap(pos.x), y: snap(pos.y), width: 22, height: 22, rotation: 0 });
   } else {
     items.push({
       id: uid(),
       type: activeTool,
-      x: pos.x,
-      y: pos.y,
+      x: snap(pos.x),
+      y: snap(pos.y),
       width: 86,
       height: 42,
       rotation: 0,
@@ -144,8 +281,8 @@ canvas.addEventListener("mousemove", (event) => {
   const pos = pointer(event);
   const item = selectedItem();
   if (!item) return;
-  item.x = pos.x - dragOffset.x;
-  item.y = pos.y - dragOffset.y;
+  item.x = snap(pos.x - dragOffset.x);
+  item.y = snap(pos.y - dragOffset.y);
   draw();
 });
 
@@ -163,7 +300,8 @@ canvas.addEventListener("wheel", (event) => {
   event.preventDefault();
   const item = selectedItem();
   if (!item) return;
-  item.rotation += event.deltaY > 0 ? 0.08 : -0.08;
+  const step = event.altKey ? Math.PI / 12 : 0.08;
+  item.rotation += event.deltaY > 0 ? step : -step;
   draw();
 });
 
@@ -173,6 +311,31 @@ window.addEventListener("keydown", (event) => {
     items = items.filter((entry) => entry.id !== selectedId);
     selectedId = null;
     draw();
+  }
+
+  if (!selectedId) return;
+  const item = selectedItem();
+  if (!item) return;
+
+  const step = event.shiftKey ? 10 : 2;
+  if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
+    saveSnapshot();
+    if (event.key === "ArrowUp") item.y = snap(item.y - step);
+    if (event.key === "ArrowDown") item.y = snap(item.y + step);
+    if (event.key === "ArrowLeft") item.x = snap(item.x - step);
+    if (event.key === "ArrowRight") item.x = snap(item.x + step);
+    draw();
+    event.preventDefault();
+  }
+
+  if (event.key.toLowerCase() === "d") {
+    duplicateSelected();
+    event.preventDefault();
+  }
+
+  if (event.key === "[" || event.key === "]") {
+    rotateSelected(event.key === "]" ? 1 : -1, true);
+    event.preventDefault();
   }
 });
 
@@ -230,25 +393,139 @@ function drawReportFrame() {
 function drawRoad() {
   const type = roadTypeSelect.value;
   ctx.save();
-  ctx.fillStyle = "#3b4a5f";
-  ctx.strokeStyle = "#e8eef7";
-  ctx.lineWidth = 2;
 
-  if (type === "straight") {
-    ctx.fillRect(36, 230, canvas.width - 72, 260);
-    dashedLine(36, canvas.height / 2, canvas.width - 36, canvas.height / 2);
-  } else if (type === "t-junction") {
-    ctx.fillRect(36, 230, canvas.width - 72, 260);
-    ctx.fillRect(canvas.width / 2 - 130, 84, 260, 290);
-    dashedLine(36, canvas.height / 2, canvas.width - 36, canvas.height / 2);
-    dashedLine(canvas.width / 2, 84, canvas.width / 2, 374);
-  } else {
-    ctx.fillRect(36, 230, canvas.width - 72, 260);
-    ctx.fillRect(canvas.width / 2 - 130, 84, 260, canvas.height - 168);
-    dashedLine(36, canvas.height / 2, canvas.width - 36, canvas.height / 2);
-    dashedLine(canvas.width / 2, 84, canvas.width / 2, canvas.height - 84);
+  const lotGrad = ctx.createLinearGradient(0, 84, 0, canvas.height - 20);
+  lotGrad.addColorStop(0, "#1b2638");
+  lotGrad.addColorStop(1, "#162131");
+  ctx.fillStyle = lotGrad;
+  ctx.fillRect(10, 84, canvas.width - 20, canvas.height - 104);
+
+  const roadGrad = ctx.createLinearGradient(0, 84, 0, canvas.height - 84);
+  roadGrad.addColorStop(0, "#52657f");
+  roadGrad.addColorStop(0.5, "#3a4a60");
+  roadGrad.addColorStop(1, "#2a394d");
+
+  const shoulderGrad = ctx.createLinearGradient(0, 84, 0, canvas.height - 84);
+  shoulderGrad.addColorStop(0, "#2e3f55");
+  shoulderGrad.addColorStop(1, "#223246");
+
+  const drawCrossRoad = type !== "straight";
+  const crossHeight = type === "t-junction" ? 290 : canvas.height - 168;
+
+  ctx.fillStyle = shoulderGrad;
+  ctx.fillRect(36, 214, canvas.width - 72, 16);
+  ctx.fillRect(36, 490, canvas.width - 72, 16);
+  if (drawCrossRoad) {
+    ctx.fillRect(canvas.width / 2 - 146, 84, 16, crossHeight);
+    ctx.fillRect(canvas.width / 2 + 130, 84, 16, crossHeight);
   }
 
+  ctx.fillStyle = roadGrad;
+  ctx.fillRect(36, 230, canvas.width - 72, 260);
+  if (drawCrossRoad) ctx.fillRect(canvas.width / 2 - 130, 84, 260, crossHeight);
+
+  ctx.strokeStyle = "rgba(255,255,255,0.2)";
+  ctx.strokeRect(36, 230, canvas.width - 72, 260);
+  if (drawCrossRoad) ctx.strokeRect(canvas.width / 2 - 130, 84, 260, crossHeight);
+
+  dashedLine(36, canvas.height / 2, canvas.width - 36, canvas.height / 2);
+  if (drawCrossRoad) dashedLine(canvas.width / 2, 84, canvas.width / 2, type === "t-junction" ? 374 : canvas.height - 84);
+
+  drawRoadTexture(36, 230, canvas.width - 72, 260, type === "straight" ? "horizontal" : "both");
+  if (drawCrossRoad) drawRoadTexture(canvas.width / 2 - 130, 84, 260, crossHeight, "vertical");
+
+  drawStopBars(type);
+  drawCrosswalks(type);
+
+  ctx.restore();
+}
+
+function drawGrid() {
+  if (!showGridInput.checked) return;
+  const size = Number(gridSizeInput.value) || 24;
+  ctx.save();
+  ctx.strokeStyle = "rgba(255,255,255,0.08)";
+  ctx.lineWidth = 1;
+  for (let x = 10; x <= canvas.width - 10; x += size) {
+    ctx.beginPath();
+    ctx.moveTo(x, 84);
+    ctx.lineTo(x, canvas.height - 22);
+    ctx.stroke();
+  }
+  for (let y = 84; y <= canvas.height - 22; y += size) {
+    ctx.beginPath();
+    ctx.moveTo(10, y);
+    ctx.lineTo(canvas.width - 10, y);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+
+function drawRoadTexture(x, y, width, height, orientation) {
+  ctx.save();
+  ctx.globalAlpha = 0.18;
+  ctx.strokeStyle = "rgba(255,255,255,0.14)";
+  ctx.lineWidth = 1;
+
+  if (orientation === "horizontal" || orientation === "both") {
+    for (let yy = y + 10; yy < y + height; yy += 16) {
+      ctx.beginPath();
+      ctx.moveTo(x + 8, yy);
+      ctx.lineTo(x + width - 8, yy);
+      ctx.stroke();
+    }
+  }
+
+  if (orientation === "vertical" || orientation === "both") {
+    for (let xx = x + 10; xx < x + width; xx += 16) {
+      ctx.beginPath();
+      ctx.moveTo(xx, y + 8);
+      ctx.lineTo(xx, y + height - 8);
+      ctx.stroke();
+    }
+  }
+
+  ctx.restore();
+}
+
+function drawCrosswalks(type) {
+  ctx.save();
+  ctx.fillStyle = "rgba(236, 242, 251, 0.42)";
+  const stripeW = 10;
+  const gap = 8;
+  for (let x = 388; x < 712; x += stripeW + gap) {
+    ctx.fillRect(x, 205, stripeW, 20);
+    ctx.fillRect(x, 495, stripeW, 20);
+  }
+
+  if (type !== "straight") {
+    for (let y = 292; y < 428; y += stripeW + gap) {
+      ctx.fillRect(canvas.width / 2 - 155, y, 20, stripeW);
+      ctx.fillRect(canvas.width / 2 + 135, y, 20, stripeW);
+    }
+  }
+  ctx.restore();
+}
+
+function drawStopBars(type) {
+  ctx.save();
+  ctx.strokeStyle = "rgba(255,255,255,0.62)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(350, 227);
+  ctx.lineTo(750, 227);
+  ctx.moveTo(350, 493);
+  ctx.lineTo(750, 493);
+  if (type !== "straight") {
+    ctx.moveTo(canvas.width / 2 - 133, 270);
+    ctx.lineTo(canvas.width / 2 - 133, 450);
+    if (type !== "t-junction") {
+      ctx.moveTo(canvas.width / 2 + 133, 270);
+      ctx.lineTo(canvas.width / 2 + 133, 450);
+    }
+  }
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -266,13 +543,32 @@ function drawVehicle(item, color, label) {
   ctx.save();
   ctx.translate(item.x, item.y);
   ctx.rotate(item.rotation || 0);
-  ctx.fillStyle = color;
-  ctx.strokeStyle = "#12151c";
+  const bodyGrad = ctx.createLinearGradient(-item.width / 2, -item.height / 2, item.width / 2, item.height / 2);
+  bodyGrad.addColorStop(0, lighten(color, 0.24));
+  bodyGrad.addColorStop(1, color);
+  ctx.fillStyle = bodyGrad;
+  ctx.strokeStyle = "#0c1118";
   ctx.lineWidth = 2;
+  ctx.shadowColor = "rgba(0, 0, 0, 0.35)";
+  ctx.shadowBlur = 12;
+  ctx.shadowOffsetY = 3;
   ctx.beginPath();
   ctx.roundRect(-item.width / 2, -item.height / 2, item.width, item.height, 8);
   ctx.fill();
+  ctx.shadowColor = "transparent";
   ctx.stroke();
+
+  ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+  ctx.fillRect(-item.width / 2 + 8, -item.height / 2 + 6, item.width - 16, 8);
+
+  const wheelW = Math.max(8, Math.round(item.width * 0.12));
+  const wheelH = Math.max(5, Math.round(item.height * 0.2));
+  ctx.fillStyle = "#0b0f16";
+  ctx.fillRect(-item.width / 2 + 8, -item.height / 2 - 2, wheelW, wheelH);
+  ctx.fillRect(item.width / 2 - wheelW - 8, -item.height / 2 - 2, wheelW, wheelH);
+  ctx.fillRect(-item.width / 2 + 8, item.height / 2 - wheelH + 2, wheelW, wheelH);
+  ctx.fillRect(item.width / 2 - wheelW - 8, item.height / 2 - wheelH + 2, wheelW, wheelH);
+
   ctx.fillStyle = "#f9fbff";
   ctx.font = "700 12px Segoe UI, sans-serif";
   ctx.textAlign = "center";
@@ -285,7 +581,12 @@ function drawArrow(item) {
   ctx.save();
   ctx.translate(item.x, item.y);
   ctx.rotate(item.rotation || 0);
-  ctx.fillStyle = "#facc15";
+  const arrowGrad = ctx.createLinearGradient(-item.width / 2, 0, item.width / 2, 0);
+  arrowGrad.addColorStop(0, "#fde047");
+  arrowGrad.addColorStop(1, "#eab308");
+  ctx.fillStyle = arrowGrad;
+  ctx.shadowColor = "rgba(0,0,0,0.32)";
+  ctx.shadowBlur = 8;
   ctx.beginPath();
   ctx.moveTo(-item.width / 2, -item.height / 2);
   ctx.lineTo(item.width / 2 - 16, -item.height / 2);
@@ -296,6 +597,10 @@ function drawArrow(item) {
   ctx.lineTo(-item.width / 2, item.height / 2);
   ctx.closePath();
   ctx.fill();
+  ctx.shadowColor = "transparent";
+  ctx.strokeStyle = "#7c5f00";
+  ctx.lineWidth = 2;
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -303,7 +608,11 @@ function drawSkid(item) {
   ctx.save();
   ctx.translate(item.x, item.y);
   ctx.rotate(item.rotation || 0);
-  ctx.strokeStyle = "#0f172a";
+  const skidGrad = ctx.createLinearGradient(-item.width / 2, 0, item.width / 2, 0);
+  skidGrad.addColorStop(0, "rgba(10, 12, 18, 0.2)");
+  skidGrad.addColorStop(0.5, "rgba(10, 12, 18, 0.78)");
+  skidGrad.addColorStop(1, "rgba(10, 12, 18, 0.25)");
+  ctx.strokeStyle = skidGrad;
   ctx.lineWidth = 3;
   ctx.setLineDash([8, 6]);
   ctx.beginPath();
@@ -319,7 +628,10 @@ function drawCone(item) {
   ctx.save();
   ctx.translate(item.x, item.y);
   ctx.rotate(item.rotation || 0);
-  ctx.fillStyle = "#f97316";
+  const coneGrad = ctx.createLinearGradient(0, -item.height / 2, 0, item.height / 2);
+  coneGrad.addColorStop(0, "#fb923c");
+  coneGrad.addColorStop(1, "#ea580c");
+  ctx.fillStyle = coneGrad;
   ctx.beginPath();
   ctx.moveTo(0, -item.height / 2);
   ctx.lineTo(item.width / 2, item.height / 2);
@@ -327,7 +639,14 @@ function drawCone(item) {
   ctx.closePath();
   ctx.fill();
   ctx.strokeStyle = "#7c2d12";
+  ctx.lineWidth = 1.5;
   ctx.stroke();
+
+  ctx.fillStyle = "#fff7ed";
+  const stripeY = item.height * 0.08;
+  ctx.fillRect(-item.width * 0.28, stripeY, item.width * 0.56, 3);
+
+  ctx.strokeStyle = "#7c2d12";
   ctx.restore();
 }
 
@@ -335,32 +654,71 @@ function drawText(item) {
   ctx.save();
   ctx.translate(item.x, item.y);
   ctx.rotate(item.rotation || 0);
-  ctx.fillStyle = "#e5ebf7";
   ctx.font = "600 16px Segoe UI, sans-serif";
+  const textWidth = ctx.measureText(item.text).width;
+  ctx.fillStyle = "rgba(11, 18, 32, 0.62)";
+  ctx.fillRect(-textWidth / 2 - 8, -14, textWidth + 16, 22);
+  ctx.fillStyle = "#e5ebf7";
   ctx.textAlign = "center";
   ctx.fillText(item.text, 0, 0);
   ctx.restore();
 }
 
+function lighten(hex, amount) {
+  const color = hex.replace("#", "");
+  const r = parseInt(color.slice(0, 2), 16);
+  const g = parseInt(color.slice(2, 4), 16);
+  const b = parseInt(color.slice(4, 6), 16);
+  const lift = (channel) => Math.min(255, Math.round(channel + (255 - channel) * amount));
+  return `rgb(${lift(r)}, ${lift(g)}, ${lift(b)})`;
+}
+
 function drawSelection(item) {
   const bounds = itemBounds(item);
+  const left = bounds.left - 6;
+  const top = bounds.top - 6;
+  const width = bounds.right - bounds.left + 12;
+  const height = bounds.bottom - bounds.top + 12;
+
   ctx.save();
-  ctx.strokeStyle = "#155aa8";
-  ctx.setLineDash([5, 4]);
-  ctx.strokeRect(bounds.left - 6, bounds.top - 6, bounds.right - bounds.left + 12, bounds.bottom - bounds.top + 12);
+  ctx.strokeStyle = "#93c5fd";
+  ctx.lineWidth = 1.8;
+  ctx.setLineDash([6, 4]);
+  ctx.strokeRect(left, top, width, height);
+  ctx.setLineDash([]);
+
+  const handle = 6;
+  ctx.fillStyle = "#e0f2fe";
+  ctx.strokeStyle = "#2563eb";
+  const points = [
+    [left, top],
+    [left + width / 2, top],
+    [left + width, top],
+    [left, top + height / 2],
+    [left + width, top + height / 2],
+    [left, top + height],
+    [left + width / 2, top + height],
+    [left + width, top + height]
+  ];
+  points.forEach(([x, y]) => {
+    ctx.beginPath();
+    ctx.rect(x - handle / 2, y - handle / 2, handle, handle);
+    ctx.fill();
+    ctx.stroke();
+  });
   ctx.restore();
 }
 
 function drawFooterLegend() {
   ctx.save();
   ctx.fillStyle = "#0f1829";
-  ctx.fillRect(24, canvas.height - 82, 420, 48);
+  ctx.fillRect(24, canvas.height - 82, 560, 48);
   ctx.strokeStyle = "#3a567d";
-  ctx.strokeRect(24, canvas.height - 82, 420, 48);
+  ctx.strokeRect(24, canvas.height - 82, 560, 48);
   ctx.fillStyle = "#d6e3f5";
   ctx.font = "12px Segoe UI, sans-serif";
   ctx.fillText(`Weather: ${weatherSelect.value}   Light: ${lightSelect.value}`, 34, canvas.height - 54);
-  ctx.fillText("Legend: V# = Vehicle Unit, Arrow = Direction of Travel, Cone = Evidence Marker", 34, canvas.height - 38);
+  ctx.fillText(`Grid: ${showGridInput.checked ? `On (${gridSizeInput.value}px)` : "Off"}   Snap: ${snapGridInput.checked ? "On" : "Off"}`, 34, canvas.height - 38);
   ctx.restore();
 }
 
@@ -368,6 +726,7 @@ function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawReportFrame();
   drawRoad();
+  drawGrid();
 
   items.forEach((item) => {
     if (item.type === "car") drawVehicle(item, "#0f766e", "CAR");
@@ -382,6 +741,7 @@ function draw() {
   });
 
   drawFooterLegend();
+  refreshInspector();
 }
 
 draw();
