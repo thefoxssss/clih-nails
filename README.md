@@ -21,3 +21,6 @@ A lightweight browser app for making car crash diagrams similar to police collis
 Open `index.html` in a browser.
 
 No build step or server is required.
+
+
+what are we building..
