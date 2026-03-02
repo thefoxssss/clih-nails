@@ -1,156 +1,68 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>WorkOnline Chat</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css">
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crash Diagram Maker</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div class="auth-overlay" id="authOverlay">
-  <div class="auth-card">
-    <div>
-      <h2 style="margin:0 0 6px 0;">Welcome to WorkOnline</h2>
-      <div class="auth-note">Sign in to start direct messages and one-to-one calls.</div>
-      <div class="auth-note">Connect your Firebase project for real-time accounts, chat, and voice channels.</div>
-    </div>
-    <div class="auth-tabs">
-      <button class="button" id="loginTab">Sign In</button>
-      <button class="button ghost" id="registerTab">Create Account</button>
-    </div>
-    <div id="loginForm">
-      <div class="field">
-        <label for="loginEmail">Email</label>
-        <input id="loginEmail" type="email" placeholder="you@company.com">
-      </div>
-      <div class="field" style="margin-top:12px;">
-        <label for="loginPass">Password</label>
-        <input id="loginPass" type="password" placeholder="••••••••">
-      </div>
-      <div class="auth-actions" style="margin-top:16px;">
-        <button class="button primary" id="loginBtn">Sign In</button>
-        <div class="auth-note" id="loginError"></div>
-      </div>
-    </div>
-    <div id="registerForm" class="hidden">
-      <div class="field">
-        <label for="registerEmail">Email</label>
-        <input id="registerEmail" type="email" placeholder="name@company.com">
-      </div>
-      <div class="field" style="margin-top:12px;">
-        <label for="registerPass">Password</label>
-        <input id="registerPass" type="password" placeholder="Create a password">
-      </div>
-      <div class="field" style="margin-top:12px;">
-        <label for="registerHandle">Display name</label>
-        <input id="registerHandle" type="text" placeholder="Ari Chen">
-      </div>
-      <div class="field" style="margin-top:12px;">
-        <label for="registerStatus">Status</label>
-        <input id="registerStatus" type="text" placeholder="Working, Available, In a call">
-      </div>
-      <div class="auth-actions" style="margin-top:16px;">
-        <button class="button primary" id="registerBtn">Create Account</button>
-        <div class="auth-note" id="registerError"></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="app">
-  <aside class="channels">
-    <div class="brand">
+  <div class="app">
+    <header class="topbar">
       <div>
-        <h1>WorkOnline</h1>
-        <p class="brand-subtitle">Direct messages & calls</p>
-      </div>
-      <span class="status-badge" id="onlineCount">Friends 0</span>
-    </div>
-
-    <div class="section">
-      <h2>Add Friend</h2>
-      <div class="friend-actions">
-        <input id="friendHandleInput" type="text" placeholder="Add friend by handle">
-        <button class="button" id="addFriendBtn">Add</button>
-      </div>
-      <div class="auth-note" id="friendsError"></div>
-    </div>
-
-    <div class="section">
-      <h2>Friends</h2>
-      <div id="friendsList"></div>
-    </div>
-
-    <div class="section">
-      <h2>Direct Messages</h2>
-      <div id="dmList"></div>
-    </div>
-
-    <div class="account">
-      <h3>Account</h3>
-      <div class="row">
-        <p>Signed in as <strong id="accountName">guest</strong></p>
-        <button class="button danger" id="signOutBtn">Sign out</button>
-      </div>
-      <p>Status: <span class="badge focus" id="accountStatus">Working</span></p>
-    </div>
-  </aside>
-
-  <main class="main">
-    <div class="header">
-      <div>
-        <h2 id="activeChannel">Select a friend</h2>
-        <div class="tag">Start a private chat or call with your friends.</div>
+        <h1>Crash Diagram Maker</h1>
+        <p>Create vehicle collision diagrams similar to incident reports.</p>
       </div>
       <div class="actions">
-        <button class="button success hidden" id="dmCallBtn">Call Friend</button>
-        <button class="button" id="startVoiceBtn">Join Call</button>
-        <button class="button primary" id="leaveVoiceBtn">Leave Call</button>
+        <button id="undoBtn">Undo</button>
+        <button id="clearBtn">Clear</button>
+        <button id="exportBtn" class="primary">Export PNG</button>
       </div>
-    </div>
+    </header>
 
-    <div class="chat" id="chatWindow"></div>
-
-    <div class="input">
-      <div class="input-box">
-        <input id="messageInput" type="text" placeholder="Select a DM to start chatting">
-        <button class="button primary" id="sendBtn">Send</button>
+    <aside class="panel">
+      <h2>Tools</h2>
+      <div class="tool-grid" id="toolGrid">
+        <button class="tool active" data-tool="select">Select</button>
+        <button class="tool" data-tool="car">Car</button>
+        <button class="tool" data-tool="truck">Truck</button>
+        <button class="tool" data-tool="motorcycle">Motorcycle</button>
+        <button class="tool" data-tool="arrow">Direction Arrow</button>
+        <button class="tool" data-tool="skid">Skid Mark</button>
+        <button class="tool" data-tool="text">Text Label</button>
       </div>
-    </div>
-  </main>
 
-  <aside class="friends">
-    <div class="section">
-      <h2>Profile</h2>
-      <div class="profile-card">
-        <div class="profile-avatar" id="profileAvatar">ME</div>
-        <div>
-          <div class="profile-name" id="profileName">You</div>
-          <div class="profile-handle" id="profileHandle">@handle</div>
-          <div class="profile-status" id="profileStatus">Working</div>
-        </div>
-      </div>
-    </div>
+      <h2>Road setup</h2>
+      <label>Road type</label>
+      <select id="roadType">
+        <option value="intersection">4-way intersection</option>
+        <option value="straight">Straight road</option>
+        <option value="t-junction">T-junction</option>
+      </select>
 
-    <div class="section">
-      <h2>Call Status</h2>
-      <div class="voice-panel">
-        <div class="voice-row">
-          <div>
-            <div><strong id="voiceRoomName">daily-sync</strong></div>
-            <div class="voice-status" id="voiceStatus">Not connected</div>
-          </div>
-          <span class="badge offline" id="voiceBadge">Offline</span>
-        </div>
-        <div class="voice-status" id="voiceParticipants">0 listeners</div>
-      </div>
-    </div>
-  </aside>
-</div>
-<script src="app.js"></script>
+      <label>Weather</label>
+      <select id="weather">
+        <option>Clear</option>
+        <option>Rain</option>
+        <option>Snow</option>
+        <option>Fog</option>
+      </select>
+
+      <label>Light</label>
+      <select id="light">
+        <option>Daylight</option>
+        <option>Dusk</option>
+        <option>Night</option>
+      </select>
+
+      <p class="hint">Tip: click an object in Select mode to drag or rotate with mouse wheel.</p>
+    </aside>
+
+    <main class="canvas-wrap">
+      <canvas id="diagramCanvas" width="1100" height="720"></canvas>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
 </body>
 </html>
