@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Crash Diagram Maker</title>
+  <title>Police Crash Report Diagram</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="app">
     <header class="topbar">
       <div>
-        <h1>Crash Diagram Maker</h1>
-        <p>Create vehicle collision diagrams similar to incident reports.</p>
+        <h1>Police Crash Report Diagram</h1>
+        <p>Build report-style scene diagrams with labeled units, controls, and evidence marks.</p>
       </div>
       <div class="actions">
         <button id="undoBtn">Undo</button>
@@ -21,26 +21,49 @@
     </header>
 
     <aside class="panel">
+      <h2>Report Header</h2>
+      <div class="report-grid">
+        <label for="reportNumber">Report #</label>
+        <input id="reportNumber" type="text" value="2026-001284">
+        <label for="reportDate">Date</label>
+        <input id="reportDate" type="date">
+        <label for="reportLocation">Location</label>
+        <input id="reportLocation" type="text" value="Main St / 8th Ave">
+        <label for="officerName">Officer</label>
+        <input id="officerName" type="text" value="Ofc. J. Miller #417">
+      </div>
+
       <h2>Tools</h2>
       <div class="tool-grid" id="toolGrid">
-        <button class="tool active" data-tool="select">Select</button>
-        <button class="tool" data-tool="car">Car</button>
+        <button class="tool active" data-tool="select">Select / Move</button>
+        <button class="tool" data-tool="car">Patrol Car</button>
         <button class="tool" data-tool="truck">Truck</button>
         <button class="tool" data-tool="motorcycle">Motorcycle</button>
         <button class="tool" data-tool="arrow">Direction Arrow</button>
         <button class="tool" data-tool="skid">Skid Mark</button>
         <button class="tool" data-tool="text">Text Label</button>
+        <button class="tool" data-tool="cone">Evidence Cone</button>
+      </div>
+
+      <h2>Selected Unit</h2>
+      <div class="control-row">
+        <button id="rotateLeftBtn">Rotate ⟲</button>
+        <button id="rotateRightBtn">Rotate ⟳</button>
+      </div>
+      <div class="control-row">
+        <button id="bringFrontBtn">Bring Front</button>
+        <button id="sendBackBtn">Send Back</button>
       </div>
 
       <h2>Road setup</h2>
-      <label>Road type</label>
+      <label for="roadType">Road type</label>
       <select id="roadType">
         <option value="intersection">4-way intersection</option>
         <option value="straight">Straight road</option>
         <option value="t-junction">T-junction</option>
       </select>
 
-      <label>Weather</label>
+      <label for="weather">Weather</label>
       <select id="weather">
         <option>Clear</option>
         <option>Rain</option>
@@ -48,14 +71,14 @@
         <option>Fog</option>
       </select>
 
-      <label>Light</label>
+      <label for="light">Light</label>
       <select id="light">
         <option>Daylight</option>
         <option>Dusk</option>
         <option>Night</option>
       </select>
 
-      <p class="hint">Tip: click an object in Select mode to drag or rotate with mouse wheel.</p>
+      <p class="hint">Tip: In Select mode, click an object to move it. Use mouse wheel or rotate buttons to align vehicles.</p>
     </aside>
 
     <main class="canvas-wrap">
