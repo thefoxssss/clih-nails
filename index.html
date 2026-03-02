@@ -15,8 +15,11 @@
       </div>
       <div class="actions">
         <button id="undoBtn">Undo</button>
+        <button id="saveBtn">Save JSON</button>
+        <button id="loadBtn">Load JSON</button>
         <button id="clearBtn">Clear</button>
         <button id="exportBtn" class="primary">Export PNG</button>
+        <input id="loadFileInput" type="file" accept="application/json" hidden>
       </div>
     </header>
 
@@ -54,6 +57,29 @@
         <button id="bringFrontBtn">Bring Front</button>
         <button id="sendBackBtn">Send Back</button>
       </div>
+      <div class="control-row single">
+        <button id="duplicateBtn">Duplicate</button>
+      </div>
+
+      <h2>Precision</h2>
+      <div class="control-row">
+        <label class="checkbox-row"><input id="showGrid" type="checkbox" checked> Show grid</label>
+        <label class="checkbox-row"><input id="snapGrid" type="checkbox"> Snap to grid</label>
+      </div>
+      <label for="gridSize">Grid size</label>
+      <input id="gridSize" type="number" min="10" max="80" step="2" value="24">
+
+      <h2>Inspector</h2>
+      <div class="report-grid">
+        <label for="inspectorX">X</label>
+        <input id="inspectorX" type="number" step="1">
+        <label for="inspectorY">Y</label>
+        <input id="inspectorY" type="number" step="1">
+        <label for="inspectorRotation">Angle°</label>
+        <input id="inspectorRotation" type="number" step="1">
+        <label for="inspectorLabel">Label/Text</label>
+        <input id="inspectorLabel" type="text" placeholder="V1 or text note">
+      </div>
 
       <h2>Road setup</h2>
       <label for="roadType">Road type</label>
@@ -78,7 +104,7 @@
         <option>Night</option>
       </select>
 
-      <p class="hint">Tip: In Select mode, click an object to move it. Use mouse wheel or rotate buttons to align vehicles.</p>
+      <p class="hint">Tip: Shift + arrow keys nudges by 10px. Press D to duplicate. Hold Alt while rotating with the wheel to snap to 15° increments.</p>
     </aside>
 
     <main class="canvas-wrap">
