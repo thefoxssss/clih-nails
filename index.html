@@ -105,6 +105,9 @@
       </select>
 
       <h2>Simple Simulation</h2>
+      <label for="simUnitA">Unit 1 (placed vehicle)</label>
+      <select id="simUnitA"></select>
+
       <label for="simDirectionA">Unit 1 direction</label>
       <select id="simDirectionA">
         <option value="east">West → East</option>
@@ -113,6 +116,12 @@
         <option value="north">South → North</option>
       </select>
 
+      <label for="simSpeedA">Unit 1 speed</label>
+      <input id="simSpeedA" type="range" min="15" max="95" step="1" value="48">
+
+      <label for="simUnitB">Unit 2 (placed vehicle)</label>
+      <select id="simUnitB"></select>
+
       <label for="simDirectionB">Unit 2 direction</label>
       <select id="simDirectionB">
         <option value="south">North → South</option>
@@ -120,6 +129,9 @@
         <option value="east">West → East</option>
         <option value="west">East → West</option>
       </select>
+
+      <label for="simSpeedB">Unit 2 speed</label>
+      <input id="simSpeedB" type="range" min="15" max="95" step="1" value="52">
 
       <div class="control-row">
         <button id="simPlayBtn" class="primary">▶ Play wreck</button>
