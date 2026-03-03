@@ -16,6 +16,7 @@ A lightweight browser app for making car crash diagrams similar to police collis
 - Optional drawing grid and snap-to-grid behavior
 - Inspector inputs for direct X/Y/angle/label editing
 - Annotate weather and lighting conditions
+- Physics-based crash playback using placed vehicles, direction controls, speed sliders, and post-impact sliding/skid behavior
 
 ## Run locally
 Open `index.html` in a browser.

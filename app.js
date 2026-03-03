@@ -28,6 +28,10 @@ const inspectorRotation = document.getElementById("inspectorRotation");
 const inspectorLabel = document.getElementById("inspectorLabel");
 const simDirectionA = document.getElementById("simDirectionA");
 const simDirectionB = document.getElementById("simDirectionB");
+const simUnitA = document.getElementById("simUnitA");
+const simUnitB = document.getElementById("simUnitB");
+const simSpeedA = document.getElementById("simSpeedA");
+const simSpeedB = document.getElementById("simSpeedB");
 const simPlayBtn = document.getElementById("simPlayBtn");
 const simResetBtn = document.getElementById("simResetBtn");
 
@@ -42,6 +46,73 @@ const snapshots = [];
 let vehicleCounter = 1;
 let simState = null;
 let simAnimationId = null;
+let lastTickTime = 0;
+
+function vehicleItems() {
+  return items.filter((item) => ["car", "truck", "motorcycle"].includes(item.type));
+}
+
+function speedFromSlider(value) {
+  return Number(value) / 16;
+}
+
+function widthByType(type) {
+  if (type === "motorcycle") return 62;
+  return 86;
+}
+
+function heightByType(type) {
+  if (type === "motorcycle") return 30;
+  return 42;
+}
+
+function unitMass(type) {
+  if (type === "truck") return 1.8;
+  if (type === "motorcycle") return 0.8;
+  return 1.2;
+}
+
+function collisionRadius(unit) {
+  return Math.hypot(unit.width, unit.height) * 0.35;
+}
+
+function updateSimUnitSelectors() {
+  const vehicles = vehicleItems();
+  const previousA = simUnitA.value;
+  const previousB = simUnitB.value;
+
+  [simUnitA, simUnitB].forEach((select) => {
+    select.innerHTML = "";
+    vehicles.forEach((vehicle) => {
+      const option = document.createElement("option");
+      option.value = vehicle.id;
+      option.textContent = `${vehicle.label || "Vehicle"} (${vehicle.type})`;
+      select.append(option);
+    });
+  });
+
+  if (!vehicles.length) {
+    const optionA = document.createElement("option");
+    optionA.textContent = "Place vehicles first";
+    optionA.value = "";
+    const optionB = optionA.cloneNode(true);
+    simUnitA.append(optionA);
+    simUnitB.append(optionB);
+    simUnitA.disabled = true;
+    simUnitB.disabled = true;
+    simPlayBtn.disabled = true;
+    return;
+  }
+
+  simUnitA.disabled = false;
+  simUnitB.disabled = vehicles.length < 2;
+  simPlayBtn.disabled = vehicles.length < 2;
+  simUnitA.value = vehicles.some((vehicle) => vehicle.id === previousA) ? previousA : vehicles[0].id;
+  const fallbackB = vehicles[1]?.id || vehicles[0].id;
+  simUnitB.value = vehicles.some((vehicle) => vehicle.id === previousB && vehicle.id !== simUnitA.value)
+    ? previousB
+    : fallbackB;
+}
 
 function directionVector(direction) {
   if (direction === "east") return { x: 1, y: 0 };
@@ -57,37 +128,59 @@ function directionRotation(direction) {
   return -Math.PI / 2;
 }
 
-function simulationStartPosition(direction, laneOffset) {
-  if (direction === "east") return { x: 36, y: canvas.height / 2 - laneOffset };
-  if (direction === "west") return { x: canvas.width - 36, y: canvas.height / 2 + laneOffset };
-  if (direction === "south") return { x: canvas.width / 2 + laneOffset, y: 100 };
-  return { x: canvas.width / 2 - laneOffset, y: canvas.height - 90 };
-}
-
 function startSimulation() {
   if (simAnimationId) cancelAnimationFrame(simAnimationId);
-  const laneOffset = 48;
+  const a = items.find((item) => item.id === simUnitA.value);
+  const b = items.find((item) => item.id === simUnitB.value);
+  if (!a || !b || a.id === b.id) {
+    alert("Place at least 2 vehicles and choose different units for the sim.");
+    return;
+  }
+
+  const dirA = directionVector(simDirectionA.value);
+  const dirB = directionVector(simDirectionB.value);
+  const speedA = speedFromSlider(simSpeedA.value);
+  const speedB = speedFromSlider(simSpeedB.value);
+
   simState = {
     running: true,
     crashed: false,
+    sliding: false,
     impactAt: 0,
+    impactPoint: null,
     unitA: {
-      ...simulationStartPosition(simDirectionA.value, laneOffset),
+      x: a.x,
+      y: a.y,
+      width: widthByType(a.type),
+      height: heightByType(a.type),
       rotation: directionRotation(simDirectionA.value),
-      velocity: directionVector(simDirectionA.value),
-      speed: 2.1,
+      vx: dirA.x * speedA,
+      vy: dirA.y * speedA,
+      angularVelocity: 0,
+      mass: unitMass(a.type),
+      type: a.type,
       color: "#0f766e",
-      label: "SIM-1"
+      label: a.label || "SIM-1",
+      trail: []
     },
     unitB: {
-      ...simulationStartPosition(simDirectionB.value, laneOffset),
+      x: b.x,
+      y: b.y,
+      width: widthByType(b.type),
+      height: heightByType(b.type),
       rotation: directionRotation(simDirectionB.value),
-      velocity: directionVector(simDirectionB.value),
-      speed: 2.1,
+      vx: dirB.x * speedB,
+      vy: dirB.y * speedB,
+      angularVelocity: 0,
+      mass: unitMass(b.type),
+      type: b.type,
       color: "#b45309",
-      label: "SIM-2"
+      label: b.label || "SIM-2",
+      trail: []
     }
   };
+
+  lastTickTime = performance.now();
   tickSimulation();
 }
 
@@ -98,26 +191,101 @@ function resetSimulation() {
   draw();
 }
 
+function applyImpactPhysics(unitA, unitB) {
+  const nx = unitB.x - unitA.x;
+  const ny = unitB.y - unitA.y;
+  const distance = Math.hypot(nx, ny) || 1;
+  const normalX = nx / distance;
+  const normalY = ny / distance;
+
+  const relativeVelocityX = unitA.vx - unitB.vx;
+  const relativeVelocityY = unitA.vy - unitB.vy;
+  const closingSpeed = relativeVelocityX * normalX + relativeVelocityY * normalY;
+  const restitution = 0.25;
+  const impulse = (-(1 + restitution) * closingSpeed) / ((1 / unitA.mass) + (1 / unitB.mass));
+
+  unitA.vx += (impulse / unitA.mass) * normalX;
+  unitA.vy += (impulse / unitA.mass) * normalY;
+  unitB.vx -= (impulse / unitB.mass) * normalX;
+  unitB.vy -= (impulse / unitB.mass) * normalY;
+
+  const tangentX = -normalY;
+  const tangentY = normalX;
+  const sideSlip = 0.55;
+  const aSpeed = Math.hypot(unitA.vx, unitA.vy);
+  const bSpeed = Math.hypot(unitB.vx, unitB.vy);
+  unitA.vx += tangentX * (aSpeed * sideSlip);
+  unitA.vy += tangentY * (aSpeed * sideSlip);
+  unitB.vx -= tangentX * (bSpeed * sideSlip);
+  unitB.vy -= tangentY * (bSpeed * sideSlip);
+
+  unitA.angularVelocity = (Math.random() > 0.5 ? 1 : -1) * 0.08;
+  unitB.angularVelocity = (Math.random() > 0.5 ? 1 : -1) * 0.1;
+}
+
+function clampSimulationUnit(unit) {
+  const marginX = unit.width / 2 + 12;
+  const marginY = unit.height / 2 + 88;
+  if (unit.x < marginX || unit.x > canvas.width - marginX) unit.vx *= -0.45;
+  if (unit.y < marginY || unit.y > canvas.height - marginY) unit.vy *= -0.45;
+  unit.x = Math.max(marginX, Math.min(canvas.width - marginX, unit.x));
+  unit.y = Math.max(marginY, Math.min(canvas.height - marginY, unit.y));
+}
+
 function tickSimulation() {
   if (!simState || !simState.running) return;
 
-  if (!simState.crashed) {
-    [simState.unitA, simState.unitB].forEach((unit) => {
-      unit.x += unit.velocity.x * unit.speed;
-      unit.y += unit.velocity.y * unit.speed;
-    });
+  const now = performance.now();
+  const dt = Math.min(1.6, (now - lastTickTime) / 16.667 || 1);
+  lastTickTime = now;
+  const units = [simState.unitA, simState.unitB];
 
+  units.forEach((unit) => {
+    unit.x += unit.vx * dt;
+    unit.y += unit.vy * dt;
+    const speed = Math.hypot(unit.vx, unit.vy);
+    if (speed > 0.01 && !simState.sliding) {
+      unit.rotation = Math.atan2(unit.vy, unit.vx);
+    } else if (simState.sliding) {
+      unit.rotation += unit.angularVelocity * dt;
+      unit.angularVelocity *= 0.97;
+      unit.trail.push({ x: unit.x, y: unit.y });
+      if (unit.trail.length > 45) unit.trail.shift();
+    }
+  });
+
+  if (!simState.crashed) {
     const dx = simState.unitA.x - simState.unitB.x;
     const dy = simState.unitA.y - simState.unitB.y;
-    if (Math.hypot(dx, dy) < 64) {
+    const minDistance = collisionRadius(simState.unitA) + collisionRadius(simState.unitB);
+    if (Math.hypot(dx, dy) < minDistance) {
       simState.crashed = true;
+      simState.sliding = true;
       simState.impactAt = performance.now();
+      simState.impactPoint = {
+        x: (simState.unitA.x + simState.unitB.x) / 2,
+        y: (simState.unitA.y + simState.unitB.y) / 2
+      };
+      applyImpactPhysics(simState.unitA, simState.unitB);
+    }
+  } else {
+    units.forEach((unit) => {
+      unit.vx *= 0.967;
+      unit.vy *= 0.967;
+    });
+
+    const maxSpeed = Math.max(...units.map((unit) => Math.hypot(unit.vx, unit.vy)));
+    if (maxSpeed < 0.18) {
       simState.running = false;
     }
   }
 
+  clampSimulationUnit(simState.unitA);
+  clampSimulationUnit(simState.unitB);
+
   draw();
-  simAnimationId = requestAnimationFrame(tickSimulation);
+  if (simState.running) simAnimationId = requestAnimationFrame(tickSimulation);
+  else simAnimationId = null;
 }
 
 function saveSnapshot() {
@@ -809,14 +977,29 @@ function drawFooterLegend() {
 
 function drawSimulation() {
   if (!simState) return;
-  const simWidth = 86;
-  const simHeight = 42;
-  drawVehicle({ ...simState.unitA, width: simWidth, height: simHeight }, simState.unitA.color, simState.unitA.label);
-  drawVehicle({ ...simState.unitB, width: simWidth, height: simHeight }, simState.unitB.color, simState.unitB.label);
+  drawVehicle(simState.unitA, simState.unitA.color, simState.unitA.label);
+  drawVehicle(simState.unitB, simState.unitB.color, simState.unitB.label);
+
+  if (simState.sliding) {
+    [simState.unitA, simState.unitB].forEach((unit) => {
+      if (unit.trail.length < 2) return;
+      ctx.save();
+      ctx.strokeStyle = "rgba(17, 24, 39, 0.45)";
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([7, 6]);
+      ctx.beginPath();
+      unit.trail.forEach((point, index) => {
+        if (index === 0) ctx.moveTo(point.x, point.y);
+        else ctx.lineTo(point.x, point.y);
+      });
+      ctx.stroke();
+      ctx.restore();
+    });
+  }
 
   if (!simState.crashed) return;
-  const cx = (simState.unitA.x + simState.unitB.x) / 2;
-  const cy = (simState.unitA.y + simState.unitB.y) / 2;
+  const cx = simState.impactPoint ? simState.impactPoint.x : (simState.unitA.x + simState.unitB.x) / 2;
+  const cy = simState.impactPoint ? simState.impactPoint.y : (simState.unitA.y + simState.unitB.y) / 2;
   const pulse = 14 + Math.sin((performance.now() - simState.impactAt) / 180) * 5;
 
   ctx.save();
@@ -838,6 +1021,7 @@ function drawSimulation() {
 }
 
 function draw() {
+  updateSimUnitSelectors();
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawReportFrame();
   drawRoad();
