@@ -159,6 +159,31 @@ function startSimulation() {
   const dirB = directionVector(simDirectionB.value);
   const speedA = speedFromSlider(simSpeedA.value);
   const speedB = speedFromSlider(simSpeedB.value);
+  const vehiclePool = vehicleItems().filter((vehicle) => vehicle.id !== a.id && vehicle.id !== b.id);
+
+  const buildUnit = (vehicle, motion, color, fallbackLabel) => ({
+    id: vehicle.id,
+    x: vehicle.x,
+    y: vehicle.y,
+    width: widthByType(vehicle.type),
+    height: heightByType(vehicle.type),
+    rotation: motion ? directionRotation(motion.direction) : (vehicle.rotation || 0),
+    vx: motion ? motion.vx : 0,
+    vy: motion ? motion.vy : 0,
+    angularVelocity: 0,
+    mass: unitMass(vehicle.type),
+    type: vehicle.type,
+    color,
+    label: vehicle.label || fallbackLabel,
+    trail: []
+  });
+
+  const unitA = buildUnit(a, { direction: simDirectionA.value, vx: dirA.x * speedA, vy: dirA.y * speedA }, "#0f766e", "SIM-1");
+  const unitB = buildUnit(b, { direction: simDirectionB.value, vx: dirB.x * speedB, vy: dirB.y * speedB }, "#b45309", "SIM-2");
+  const passiveUnits = vehiclePool.map((vehicle) =>
+    buildUnit(vehicle, null, vehicleColor(vehicle.type), vehicle.label || vehicleCode(vehicle.type))
+  );
+  const units = [unitA, unitB, ...passiveUnits];
 
   simState = {
     running: true,
@@ -166,40 +191,44 @@ function startSimulation() {
     sliding: false,
     impactAt: 0,
     impactPoint: null,
-    unitA: {
-      x: a.x,
-      y: a.y,
-      width: widthByType(a.type),
-      height: heightByType(a.type),
-      rotation: directionRotation(simDirectionA.value),
-      vx: dirA.x * speedA,
-      vy: dirA.y * speedA,
-      angularVelocity: 0,
-      mass: unitMass(a.type),
-      type: a.type,
-      color: "#0f766e",
-      label: a.label || "SIM-1",
-      trail: []
-    },
-    unitB: {
-      x: b.x,
-      y: b.y,
-      width: widthByType(b.type),
-      height: heightByType(b.type),
-      rotation: directionRotation(simDirectionB.value),
-      vx: dirB.x * speedB,
-      vy: dirB.y * speedB,
-      angularVelocity: 0,
-      mass: unitMass(b.type),
-      type: b.type,
-      color: "#b45309",
-      label: b.label || "SIM-2",
-      trail: []
-    }
+    impactPoints: [],
+    units,
+    unitA,
+    unitB
   };
 
   lastTickTime = performance.now();
   tickSimulation();
+}
+
+function detectSimCollisions(units) {
+  const collisions = [];
+  for (let i = 0; i < units.length; i++) {
+    for (let j = i + 1; j < units.length; j++) {
+      const first = units[i];
+      const second = units[j];
+      const dx = first.x - second.x;
+      const dy = first.y - second.y;
+      const minDistance = collisionRadius(first) + collisionRadius(second);
+      if (Math.hypot(dx, dy) < minDistance) {
+        applyImpactPhysics(first, second);
+        collisions.push({
+          x: (first.x + second.x) / 2,
+          y: (first.y + second.y) / 2
+        });
+      }
+    }
+  }
+  return collisions;
+}
+
+function mergeImpactPoints(existingPoints, nextCollisions) {
+  const merged = [...existingPoints];
+  nextCollisions.forEach((collision) => {
+    const alreadyTracked = merged.some((point) => Math.hypot(point.x - collision.x, point.y - collision.y) < 18);
+    if (!alreadyTracked) merged.push(collision);
+  });
+  return merged.slice(-16);
 }
 
 function resetSimulation() {
@@ -268,7 +297,7 @@ function tickSimulation() {
   const now = performance.now();
   const dt = Math.min(1.6, (now - lastTickTime) / 16.667 || 1);
   lastTickTime = now;
-  const units = [simState.unitA, simState.unitB];
+  const units = simState.units || [simState.unitA, simState.unitB];
 
   units.forEach((unit) => {
     unit.x += unit.vx * dt;
@@ -284,21 +313,18 @@ function tickSimulation() {
     }
   });
 
-  if (!simState.crashed) {
-    const dx = simState.unitA.x - simState.unitB.x;
-    const dy = simState.unitA.y - simState.unitB.y;
-    const minDistance = collisionRadius(simState.unitA) + collisionRadius(simState.unitB);
-    if (Math.hypot(dx, dy) < minDistance) {
+  const collisions = detectSimCollisions(units);
+  if (collisions.length) {
+    if (!simState.crashed) {
       simState.crashed = true;
       simState.sliding = true;
       simState.impactAt = performance.now();
-      simState.impactPoint = {
-        x: (simState.unitA.x + simState.unitB.x) / 2,
-        y: (simState.unitA.y + simState.unitB.y) / 2
-      };
-      applyImpactPhysics(simState.unitA, simState.unitB);
     }
-  } else {
+    simState.impactPoint = collisions[0];
+    simState.impactPoints = mergeImpactPoints(simState.impactPoints || [], collisions);
+  }
+
+  if (simState.crashed) {
     units.forEach((unit) => {
       unit.vx *= 0.967;
       unit.vy *= 0.967;
@@ -310,8 +336,7 @@ function tickSimulation() {
     }
   }
 
-  clampSimulationUnit(simState.unitA);
-  clampSimulationUnit(simState.unitB);
+  units.forEach(clampSimulationUnit);
 
   draw();
   if (simState.running) simAnimationId = requestAnimationFrame(tickSimulation);
@@ -1139,11 +1164,11 @@ function drawFooterLegend() {
 
 function drawSimulation() {
   if (!simState) return;
-  drawVehicle(simState.unitA, simState.unitA.color, simState.unitA.label);
-  drawVehicle(simState.unitB, simState.unitB.color, simState.unitB.label);
+  const units = simState.units || [simState.unitA, simState.unitB];
+  units.forEach((unit) => drawVehicle(unit, unit.color, unit.label));
 
   if (simState.sliding) {
-    [simState.unitA, simState.unitB].forEach((unit) => {
+    units.forEach((unit) => {
       if (unit.trail.length < 2) return;
       ctx.save();
       ctx.strokeStyle = "rgba(17, 24, 39, 0.45)";
@@ -1160,25 +1185,34 @@ function drawSimulation() {
   }
 
   if (!simState.crashed) return;
-  const cx = simState.impactPoint ? simState.impactPoint.x : (simState.unitA.x + simState.unitB.x) / 2;
-  const cy = simState.impactPoint ? simState.impactPoint.y : (simState.unitA.y + simState.unitB.y) / 2;
+  const impactPoints = simState.impactPoints && simState.impactPoints.length
+    ? simState.impactPoints
+    : [simState.impactPoint || { x: (simState.unitA.x + simState.unitB.x) / 2, y: (simState.unitA.y + simState.unitB.y) / 2 }];
   const pulse = 14 + Math.sin((performance.now() - simState.impactAt) / 180) * 5;
 
   ctx.save();
-  ctx.globalAlpha = 0.65;
-  ctx.fillStyle = "#ef4444";
-  ctx.beginPath();
-  ctx.arc(cx, cy, pulse, 0, Math.PI * 2);
-  ctx.fill();
+  impactPoints.forEach((point, index) => {
+    const isLatest = index === impactPoints.length - 1;
+    const base = isLatest ? pulse : 8;
+    ctx.globalAlpha = isLatest ? 0.65 : 0.4;
+    ctx.fillStyle = "#ef4444";
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, base, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.globalAlpha = isLatest ? 1 : 0.7;
+    ctx.strokeStyle = "#fecaca";
+    ctx.lineWidth = isLatest ? 2 : 1.4;
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, base + (isLatest ? 9 : 4), 0, Math.PI * 2);
+    ctx.stroke();
+  });
+
+  const latestPoint = impactPoints[impactPoints.length - 1];
   ctx.globalAlpha = 1;
-  ctx.strokeStyle = "#fecaca";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(cx, cy, pulse + 9, 0, Math.PI * 2);
-  ctx.stroke();
   ctx.fillStyle = "#fee2e2";
   ctx.font = "700 16px Segoe UI, sans-serif";
-  ctx.fillText("Impact", cx + 20, cy - 12);
+  ctx.fillText(`Impacts: ${impactPoints.length}`, latestPoint.x + 20, latestPoint.y - 12);
   ctx.restore();
 }
 
