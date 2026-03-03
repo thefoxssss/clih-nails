@@ -104,6 +104,28 @@
         <option>Night</option>
       </select>
 
+      <h2>Simple Simulation</h2>
+      <label for="simDirectionA">Unit 1 direction</label>
+      <select id="simDirectionA">
+        <option value="east">West → East</option>
+        <option value="west">East → West</option>
+        <option value="south">North → South</option>
+        <option value="north">South → North</option>
+      </select>
+
+      <label for="simDirectionB">Unit 2 direction</label>
+      <select id="simDirectionB">
+        <option value="south">North → South</option>
+        <option value="north">South → North</option>
+        <option value="east">West → East</option>
+        <option value="west">East → West</option>
+      </select>
+
+      <div class="control-row">
+        <button id="simPlayBtn" class="primary">▶ Play wreck</button>
+        <button id="simResetBtn">Reset sim</button>
+      </div>
+
       <p class="hint">Tip: Shift + arrow keys nudges by 10px. Press D to duplicate. Hold Alt while rotating with the wheel to snap to 15° increments.</p>
     </aside>
 

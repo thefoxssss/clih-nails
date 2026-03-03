@@ -26,6 +26,10 @@ const inspectorX = document.getElementById("inspectorX");
 const inspectorY = document.getElementById("inspectorY");
 const inspectorRotation = document.getElementById("inspectorRotation");
 const inspectorLabel = document.getElementById("inspectorLabel");
+const simDirectionA = document.getElementById("simDirectionA");
+const simDirectionB = document.getElementById("simDirectionB");
+const simPlayBtn = document.getElementById("simPlayBtn");
+const simResetBtn = document.getElementById("simResetBtn");
 
 reportDateInput.valueAsDate = new Date();
 
@@ -36,6 +40,85 @@ let dragging = false;
 let dragOffset = { x: 0, y: 0 };
 const snapshots = [];
 let vehicleCounter = 1;
+let simState = null;
+let simAnimationId = null;
+
+function directionVector(direction) {
+  if (direction === "east") return { x: 1, y: 0 };
+  if (direction === "west") return { x: -1, y: 0 };
+  if (direction === "south") return { x: 0, y: 1 };
+  return { x: 0, y: -1 };
+}
+
+function directionRotation(direction) {
+  if (direction === "east") return 0;
+  if (direction === "west") return Math.PI;
+  if (direction === "south") return Math.PI / 2;
+  return -Math.PI / 2;
+}
+
+function simulationStartPosition(direction, laneOffset) {
+  if (direction === "east") return { x: 36, y: canvas.height / 2 - laneOffset };
+  if (direction === "west") return { x: canvas.width - 36, y: canvas.height / 2 + laneOffset };
+  if (direction === "south") return { x: canvas.width / 2 + laneOffset, y: 100 };
+  return { x: canvas.width / 2 - laneOffset, y: canvas.height - 90 };
+}
+
+function startSimulation() {
+  if (simAnimationId) cancelAnimationFrame(simAnimationId);
+  const laneOffset = 48;
+  simState = {
+    running: true,
+    crashed: false,
+    impactAt: 0,
+    unitA: {
+      ...simulationStartPosition(simDirectionA.value, laneOffset),
+      rotation: directionRotation(simDirectionA.value),
+      velocity: directionVector(simDirectionA.value),
+      speed: 2.1,
+      color: "#0f766e",
+      label: "SIM-1"
+    },
+    unitB: {
+      ...simulationStartPosition(simDirectionB.value, laneOffset),
+      rotation: directionRotation(simDirectionB.value),
+      velocity: directionVector(simDirectionB.value),
+      speed: 2.1,
+      color: "#b45309",
+      label: "SIM-2"
+    }
+  };
+  tickSimulation();
+}
+
+function resetSimulation() {
+  if (simAnimationId) cancelAnimationFrame(simAnimationId);
+  simAnimationId = null;
+  simState = null;
+  draw();
+}
+
+function tickSimulation() {
+  if (!simState || !simState.running) return;
+
+  if (!simState.crashed) {
+    [simState.unitA, simState.unitB].forEach((unit) => {
+      unit.x += unit.velocity.x * unit.speed;
+      unit.y += unit.velocity.y * unit.speed;
+    });
+
+    const dx = simState.unitA.x - simState.unitB.x;
+    const dy = simState.unitA.y - simState.unitB.y;
+    if (Math.hypot(dx, dy) < 64) {
+      simState.crashed = true;
+      simState.impactAt = performance.now();
+      simState.running = false;
+    }
+  }
+
+  draw();
+  simAnimationId = requestAnimationFrame(tickSimulation);
+}
 
 function saveSnapshot() {
   snapshots.push(JSON.stringify(items));
@@ -188,6 +271,8 @@ rotateRightBtn.addEventListener("click", () => rotateSelected(1));
 bringFrontBtn.addEventListener("click", () => moveLayer(true));
 sendBackBtn.addEventListener("click", () => moveLayer(false));
 duplicateBtn.addEventListener("click", duplicateSelected);
+simPlayBtn.addEventListener("click", startSimulation);
+simResetBtn.addEventListener("click", resetSimulation);
 
 clearBtn.addEventListener("click", () => {
   saveSnapshot();
@@ -722,6 +807,36 @@ function drawFooterLegend() {
   ctx.restore();
 }
 
+function drawSimulation() {
+  if (!simState) return;
+  const simWidth = 86;
+  const simHeight = 42;
+  drawVehicle({ ...simState.unitA, width: simWidth, height: simHeight }, simState.unitA.color, simState.unitA.label);
+  drawVehicle({ ...simState.unitB, width: simWidth, height: simHeight }, simState.unitB.color, simState.unitB.label);
+
+  if (!simState.crashed) return;
+  const cx = (simState.unitA.x + simState.unitB.x) / 2;
+  const cy = (simState.unitA.y + simState.unitB.y) / 2;
+  const pulse = 14 + Math.sin((performance.now() - simState.impactAt) / 180) * 5;
+
+  ctx.save();
+  ctx.globalAlpha = 0.65;
+  ctx.fillStyle = "#ef4444";
+  ctx.beginPath();
+  ctx.arc(cx, cy, pulse, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = "#fecaca";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(cx, cy, pulse + 9, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.fillStyle = "#fee2e2";
+  ctx.font = "700 16px Segoe UI, sans-serif";
+  ctx.fillText("Impact", cx + 20, cy - 12);
+  ctx.restore();
+}
+
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawReportFrame();
@@ -739,6 +854,8 @@ function draw() {
 
     if (item.id === selectedId) drawSelection(item);
   });
+
+  drawSimulation();
 
   drawFooterLegend();
   refreshInspector();
