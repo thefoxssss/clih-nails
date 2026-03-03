@@ -139,7 +139,16 @@ button.primary {
   grid-area: canvas;
   padding: 18px;
   overflow: auto;
+  display: grid;
+  grid-template-columns: minmax(680px, 1fr) 300px;
+  gap: 16px;
+  align-items: start;
 }
+
+.canvas-stage {
+  min-width: 0;
+}
+
 #diagramCanvas {
   display: block;
   width: 100%;
@@ -148,4 +157,43 @@ button.primary {
   border: 2px solid #314766;
   border-radius: 8px;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+.sim-panel {
+  position: sticky;
+  top: 18px;
+  padding: 14px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  background: #0f1829;
+}
+
+.sim-panel h2 {
+  margin: 0 0 8px;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.sim-panel label {
+  display: block;
+  margin: 8px 0 5px;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.sim-panel select,
+.sim-panel input {
+  width: 100%;
+}
+
+@media (max-width: 1380px) {
+  .canvas-wrap {
+    grid-template-columns: 1fr;
+  }
+
+  .sim-panel {
+    position: static;
+  }
 }

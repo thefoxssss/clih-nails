@@ -185,6 +185,7 @@ function startSimulation() {
 }
 
 function resetSimulation() {
+  simRunToken += 1;
   if (simAnimationId) cancelAnimationFrame(simAnimationId);
   simAnimationId = null;
   simState = null;
@@ -971,7 +972,8 @@ function drawFooterLegend() {
   ctx.fillStyle = "#d6e3f5";
   ctx.font = "12px Segoe UI, sans-serif";
   ctx.fillText(`Weather: ${weatherSelect.value}   Light: ${lightSelect.value}`, 34, canvas.height - 54);
-  ctx.fillText(`Grid: ${showGridInput.checked ? `On (${gridSizeInput.value}px)` : "Off"}   Snap: ${snapGridInput.checked ? "On" : "Off"}`, 34, canvas.height - 38);
+  const simStatus = simState ? (simState.running ? "Running" : "Stopped") : "Idle";
+  ctx.fillText(`Grid: ${showGridInput.checked ? `On (${gridSizeInput.value}px)` : "Off"}   Snap: ${snapGridInput.checked ? "On" : "Off"}   Sim: ${simStatus}`, 34, canvas.height - 38);
   ctx.restore();
 }
 
