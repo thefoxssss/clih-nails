@@ -1174,25 +1174,34 @@ function drawSimulation() {
   }
 
   if (!simState.crashed) return;
-  const cx = simState.impactPoint ? simState.impactPoint.x : (simState.unitA.x + simState.unitB.x) / 2;
-  const cy = simState.impactPoint ? simState.impactPoint.y : (simState.unitA.y + simState.unitB.y) / 2;
+  const impactPoints = simState.impactPoints && simState.impactPoints.length
+    ? simState.impactPoints
+    : [simState.impactPoint || { x: (simState.unitA.x + simState.unitB.x) / 2, y: (simState.unitA.y + simState.unitB.y) / 2 }];
   const pulse = 14 + Math.sin((performance.now() - simState.impactAt) / 180) * 5;
 
   ctx.save();
-  ctx.globalAlpha = 0.65;
-  ctx.fillStyle = "#ef4444";
-  ctx.beginPath();
-  ctx.arc(cx, cy, pulse, 0, Math.PI * 2);
-  ctx.fill();
+  impactPoints.forEach((point, index) => {
+    const isLatest = index === impactPoints.length - 1;
+    const base = isLatest ? pulse : 8;
+    ctx.globalAlpha = isLatest ? 0.65 : 0.4;
+    ctx.fillStyle = "#ef4444";
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, base, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.globalAlpha = isLatest ? 1 : 0.7;
+    ctx.strokeStyle = "#fecaca";
+    ctx.lineWidth = isLatest ? 2 : 1.4;
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, base + (isLatest ? 9 : 4), 0, Math.PI * 2);
+    ctx.stroke();
+  });
+
+  const latestPoint = impactPoints[impactPoints.length - 1];
   ctx.globalAlpha = 1;
-  ctx.strokeStyle = "#fecaca";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(cx, cy, pulse + 9, 0, Math.PI * 2);
-  ctx.stroke();
   ctx.fillStyle = "#fee2e2";
   ctx.font = "700 16px Segoe UI, sans-serif";
-  ctx.fillText("Impact", cx + 20, cy - 12);
+  ctx.fillText(`Impacts: ${impactPoints.length}`, latestPoint.x + 20, latestPoint.y - 12);
   ctx.restore();
 }
 
