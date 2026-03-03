@@ -78,11 +78,11 @@ function speedFromSlider(value) {
 }
 
 function widthByType(type) {
-  return vehicleSpecs[type]?.width;
+  return vehicleSpecs[type]?.width || 86;
 }
 
 function heightByType(type) {
-  return vehicleSpecs[type]?.height;
+  return vehicleSpecs[type]?.height || 42;
 }
 
 function unitMass(type) {
