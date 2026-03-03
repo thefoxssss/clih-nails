@@ -28,6 +28,12 @@ const inspectorRotation = document.getElementById("inspectorRotation");
 const inspectorLabel = document.getElementById("inspectorLabel");
 const simDirectionA = document.getElementById("simDirectionA");
 const simDirectionB = document.getElementById("simDirectionB");
+const simUnitA = document.getElementById("simUnitA");
+const simUnitB = document.getElementById("simUnitB");
+const simSpeedA = document.getElementById("simSpeedA");
+const simSpeedB = document.getElementById("simSpeedB");
+const simMoveA = document.getElementById("simMoveA");
+const simMoveB = document.getElementById("simMoveB");
 const simPlayBtn = document.getElementById("simPlayBtn");
 const simResetBtn = document.getElementById("simResetBtn");
 
@@ -42,6 +48,92 @@ const snapshots = [];
 let vehicleCounter = 1;
 let simState = null;
 let simAnimationId = null;
+let lastTickTime = 0;
+let simRunToken = 0;
+
+const VEHICLE_PROFILES = {
+  car: { width: 86, height: 42, mass: 1.2, color: "#0f766e", code: "CAR" },
+  truck: { width: 86, height: 42, mass: 1.8, color: "#b45309", code: "TRK" },
+  semi: { width: 120, height: 46, mass: 3.2, color: "#7c3aed", code: "SEMI" },
+  suv: { width: 92, height: 44, mass: 1.5, color: "#0369a1", code: "SUV" },
+  van: { width: 96, height: 44, mass: 1.7, color: "#c2410c", code: "VAN" },
+  motorcycle: { width: 62, height: 30, mass: 0.8, color: "#6d28d9", code: "MC" }
+};
+
+function isVehicleType(type) {
+  return Boolean(VEHICLE_PROFILES[type]);
+}
+
+function vehicleItems() {
+  return items.filter((item) => isVehicleType(item.type));
+}
+
+function speedFromSlider(value) {
+  return Number(value) / 16;
+}
+
+function widthByType(type) {
+  return VEHICLE_PROFILES[type]?.width || 86;
+}
+
+function heightByType(type) {
+  return VEHICLE_PROFILES[type]?.height || 42;
+}
+
+function unitMass(type) {
+  return VEHICLE_PROFILES[type]?.mass || 1.2;
+}
+
+function vehicleColor(type) {
+  return VEHICLE_PROFILES[type]?.color || "#0f766e";
+}
+
+function vehicleCode(type) {
+  return VEHICLE_PROFILES[type]?.code || "CAR";
+}
+
+function collisionRadius(unit) {
+  return Math.hypot(unit.width, unit.height) * 0.35;
+}
+
+function updateSimUnitSelectors() {
+  const vehicles = vehicleItems();
+  const previousA = simUnitA.value;
+  const previousB = simUnitB.value;
+
+  [simUnitA, simUnitB].forEach((select) => {
+    select.innerHTML = "";
+    vehicles.forEach((vehicle) => {
+      const option = document.createElement("option");
+      option.value = vehicle.id;
+      option.textContent = `${vehicle.label || "Vehicle"} (${vehicle.type})`;
+      select.append(option);
+    });
+  });
+
+  if (!vehicles.length) {
+    const optionA = document.createElement("option");
+    optionA.textContent = "Place vehicles first";
+    optionA.value = "";
+    const optionB = optionA.cloneNode(true);
+    simUnitA.append(optionA);
+    simUnitB.append(optionB);
+    simUnitA.disabled = true;
+    simUnitB.disabled = true;
+    simPlayBtn.disabled = true;
+    return;
+  }
+
+  simUnitA.disabled = false;
+  simUnitB.disabled = vehicles.length < 2;
+  simPlayBtn.disabled = vehicles.length < 2;
+  simUnitA.value = vehicles.some((vehicle) => vehicle.id === previousA) ? previousA : vehicles[0].id;
+  const fallbackB = vehicles.find((vehicle) => vehicle.id !== simUnitA.value)?.id || vehicles[0].id;
+  simUnitB.value = vehicles.some((vehicle) => vehicle.id === previousB && vehicle.id !== simUnitA.value)
+    ? previousB
+    : fallbackB;
+}
+
 
 function directionVector(direction) {
   if (direction === "east") return { x: 1, y: 0 };
@@ -57,67 +149,170 @@ function directionRotation(direction) {
   return -Math.PI / 2;
 }
 
-function simulationStartPosition(direction, laneOffset) {
-  if (direction === "east") return { x: 36, y: canvas.height / 2 - laneOffset };
-  if (direction === "west") return { x: canvas.width - 36, y: canvas.height / 2 + laneOffset };
-  if (direction === "south") return { x: canvas.width / 2 + laneOffset, y: 100 };
-  return { x: canvas.width / 2 - laneOffset, y: canvas.height - 90 };
-}
-
 function startSimulation() {
   if (simAnimationId) cancelAnimationFrame(simAnimationId);
-  const laneOffset = 48;
+  const a = items.find((item) => item.id === simUnitA.value);
+  const b = items.find((item) => item.id === simUnitB.value);
+  if (!a || !b || a.id === b.id) {
+    alert("Place at least 2 vehicles and choose different units for the sim.");
+    return;
+  }
+
+  const vehicles = vehicleItems();
+  const dirA = directionVector(simDirectionA.value);
+  const dirB = directionVector(simDirectionB.value);
+  const speedA = simMoveA.checked ? speedFromSlider(simSpeedA.value) : 0;
+  const speedB = simMoveB.checked ? speedFromSlider(simSpeedB.value) : 0;
+  if (speedA <= 0 && speedB <= 0) {
+    alert("Enable movement for at least one unit to run the simulation.");
+    return;
+  }
+
   simState = {
     running: true,
     crashed: false,
+    sliding: false,
     impactAt: 0,
-    unitA: {
-      ...simulationStartPosition(simDirectionA.value, laneOffset),
-      rotation: directionRotation(simDirectionA.value),
-      velocity: directionVector(simDirectionA.value),
-      speed: 2.1,
-      color: "#0f766e",
-      label: "SIM-1"
-    },
-    unitB: {
-      ...simulationStartPosition(simDirectionB.value, laneOffset),
-      rotation: directionRotation(simDirectionB.value),
-      velocity: directionVector(simDirectionB.value),
-      speed: 2.1,
-      color: "#b45309",
-      label: "SIM-2"
-    }
+    impactPoint: null,
+    units: vehicles.map((vehicle) => {
+      const isA = vehicle.id === a.id;
+      const isB = vehicle.id === b.id;
+      const baseRotation = isA ? directionRotation(simDirectionA.value) : isB ? directionRotation(simDirectionB.value) : (vehicle.rotation || 0);
+      const unitSpeed = isA ? speedA : isB ? speedB : 0;
+      const travelVector = isA ? dirA : isB ? dirB : { x: Math.cos(baseRotation), y: Math.sin(baseRotation) };
+      return {
+        id: vehicle.id,
+        x: vehicle.x,
+        y: vehicle.y,
+        width: widthByType(vehicle.type),
+        height: heightByType(vehicle.type),
+        rotation: baseRotation,
+        vx: travelVector.x * unitSpeed,
+        vy: travelVector.y * unitSpeed,
+        angularVelocity: 0,
+        mass: unitMass(vehicle.type),
+        type: vehicle.type,
+        color: vehicleColor(vehicle.type),
+        label: vehicle.label || "SIM",
+        trail: []
+      };
+    })
   };
-  tickSimulation();
+
+  lastTickTime = performance.now();
+  simRunToken += 1;
+  tickSimulation(simRunToken);
 }
 
 function resetSimulation() {
+  simRunToken += 1;
   if (simAnimationId) cancelAnimationFrame(simAnimationId);
   simAnimationId = null;
   simState = null;
   draw();
 }
 
-function tickSimulation() {
-  if (!simState || !simState.running) return;
+function applyImpactPhysics(unitA, unitB) {
+  const nx = unitB.x - unitA.x;
+  const ny = unitB.y - unitA.y;
+  const distance = Math.hypot(nx, ny) || 1;
+  const normalX = nx / distance;
+  const normalY = ny / distance;
+
+  const relativeVelocityX = unitA.vx - unitB.vx;
+  const relativeVelocityY = unitA.vy - unitB.vy;
+  const closingSpeed = relativeVelocityX * normalX + relativeVelocityY * normalY;
+  const restitution = 0.25;
+  const impulse = (-(1 + restitution) * closingSpeed) / ((1 / unitA.mass) + (1 / unitB.mass));
+
+  unitA.vx += (impulse / unitA.mass) * normalX;
+  unitA.vy += (impulse / unitA.mass) * normalY;
+  unitB.vx -= (impulse / unitB.mass) * normalX;
+  unitB.vy -= (impulse / unitB.mass) * normalY;
+
+  const tangentX = -normalY;
+  const tangentY = normalX;
+  const sideSlip = 0.55;
+  const aSpeed = Math.hypot(unitA.vx, unitA.vy);
+  const bSpeed = Math.hypot(unitB.vx, unitB.vy);
+  unitA.vx += tangentX * (aSpeed * sideSlip);
+  unitA.vy += tangentY * (aSpeed * sideSlip);
+  unitB.vx -= tangentX * (bSpeed * sideSlip);
+  unitB.vy -= tangentY * (bSpeed * sideSlip);
+
+  const cross = unitA.vx * unitB.vy - unitA.vy * unitB.vx;
+  const spinDir = cross >= 0 ? 1 : -1;
+  unitA.angularVelocity = spinDir * 0.085;
+  unitB.angularVelocity = -spinDir * 0.095;
+}
+
+function clampSimulationUnit(unit) {
+  const marginX = unit.width / 2 + 12;
+  const marginY = unit.height / 2 + 88;
+  if (unit.x < marginX || unit.x > canvas.width - marginX) unit.vx *= -0.45;
+  if (unit.y < marginY || unit.y > canvas.height - marginY) unit.vy *= -0.45;
+  unit.x = Math.max(marginX, Math.min(canvas.width - marginX, unit.x));
+  unit.y = Math.max(marginY, Math.min(canvas.height - marginY, unit.y));
+}
+
+function tickSimulation(runToken = simRunToken) {
+  if (runToken !== simRunToken || !simState || !simState.running) return;
+
+  const now = performance.now();
+  const dt = Math.min(1.6, (now - lastTickTime) / 16.667 || 1);
+  lastTickTime = now;
+  const units = simState.units || [];
+
+  units.forEach((unit) => {
+    unit.x += unit.vx * dt;
+    unit.y += unit.vy * dt;
+    const speed = Math.hypot(unit.vx, unit.vy);
+    if (speed > 0.01 && !simState.sliding) {
+      unit.rotation = Math.atan2(unit.vy, unit.vx);
+    } else if (simState.sliding) {
+      unit.rotation += unit.angularVelocity * dt;
+      unit.angularVelocity *= 0.97;
+      unit.trail.push({ x: unit.x, y: unit.y });
+      if (unit.trail.length > 45) unit.trail.shift();
+    }
+  });
 
   if (!simState.crashed) {
-    [simState.unitA, simState.unitB].forEach((unit) => {
-      unit.x += unit.velocity.x * unit.speed;
-      unit.y += unit.velocity.y * unit.speed;
+    for (let i = 0; i < units.length; i++) {
+      for (let j = i + 1; j < units.length; j++) {
+        const a = units[i];
+        const b = units[j];
+        const dx = a.x - b.x;
+        const dy = a.y - b.y;
+        const minDistance = collisionRadius(a) + collisionRadius(b);
+        if (Math.hypot(dx, dy) < minDistance) {
+          simState.crashed = true;
+          simState.sliding = true;
+          simState.impactAt = performance.now();
+          simState.impactPoint = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+          applyImpactPhysics(a, b);
+          break;
+        }
+      }
+      if (simState.crashed) break;
+    }
+  } else {
+    units.forEach((unit) => {
+      unit.vx *= 0.967;
+      unit.vy *= 0.967;
     });
 
-    const dx = simState.unitA.x - simState.unitB.x;
-    const dy = simState.unitA.y - simState.unitB.y;
-    if (Math.hypot(dx, dy) < 64) {
-      simState.crashed = true;
-      simState.impactAt = performance.now();
+    const maxSpeed = Math.max(...units.map((unit) => Math.hypot(unit.vx, unit.vy)), 0);
+    if (maxSpeed < 0.18) {
       simState.running = false;
     }
   }
 
+  units.forEach(clampSimulationUnit);
+
   draw();
-  simAnimationId = requestAnimationFrame(tickSimulation);
+  if (simState.running) simAnimationId = requestAnimationFrame(() => tickSimulation(runToken));
+  else simAnimationId = null;
 }
 
 function saveSnapshot() {
@@ -351,8 +546,8 @@ canvas.addEventListener("mousedown", (event) => {
       type: activeTool,
       x: snap(pos.x),
       y: snap(pos.y),
-      width: 86,
-      height: 42,
+      width: widthByType(activeTool),
+      height: heightByType(activeTool),
       rotation: 0,
       label: `V${vehicleCounter++}`
     });
@@ -803,20 +998,37 @@ function drawFooterLegend() {
   ctx.fillStyle = "#d6e3f5";
   ctx.font = "12px Segoe UI, sans-serif";
   ctx.fillText(`Weather: ${weatherSelect.value}   Light: ${lightSelect.value}`, 34, canvas.height - 54);
-  ctx.fillText(`Grid: ${showGridInput.checked ? `On (${gridSizeInput.value}px)` : "Off"}   Snap: ${snapGridInput.checked ? "On" : "Off"}`, 34, canvas.height - 38);
+  const simStatus = simState ? (simState.running ? "Running" : "Stopped") : "Idle";
+  ctx.fillText(`Grid: ${showGridInput.checked ? `On (${gridSizeInput.value}px)` : "Off"}   Snap: ${snapGridInput.checked ? "On" : "Off"}   Sim: ${simStatus}`, 34, canvas.height - 38);
   ctx.restore();
 }
 
 function drawSimulation() {
   if (!simState) return;
-  const simWidth = 86;
-  const simHeight = 42;
-  drawVehicle({ ...simState.unitA, width: simWidth, height: simHeight }, simState.unitA.color, simState.unitA.label);
-  drawVehicle({ ...simState.unitB, width: simWidth, height: simHeight }, simState.unitB.color, simState.unitB.label);
+  const simUnits = simState.units || [];
+  simUnits.forEach((unit) => drawVehicle(unit, unit.color, unit.label));
+
+  if (simState.sliding) {
+    simUnits.forEach((unit) => {
+      if (unit.trail.length < 2) return;
+      ctx.save();
+      ctx.strokeStyle = "rgba(17, 24, 39, 0.45)";
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([7, 6]);
+      ctx.beginPath();
+      unit.trail.forEach((point, index) => {
+        if (index === 0) ctx.moveTo(point.x, point.y);
+        else ctx.lineTo(point.x, point.y);
+      });
+      ctx.stroke();
+      ctx.restore();
+    });
+  }
 
   if (!simState.crashed) return;
-  const cx = (simState.unitA.x + simState.unitB.x) / 2;
-  const cy = (simState.unitA.y + simState.unitB.y) / 2;
+  const fallbackUnit = simUnits[0];
+  const cx = simState.impactPoint ? simState.impactPoint.x : (fallbackUnit?.x || canvas.width / 2);
+  const cy = simState.impactPoint ? simState.impactPoint.y : (fallbackUnit?.y || canvas.height / 2);
   const pulse = 14 + Math.sin((performance.now() - simState.impactAt) / 180) * 5;
 
   ctx.save();
@@ -838,15 +1050,14 @@ function drawSimulation() {
 }
 
 function draw() {
+  updateSimUnitSelectors();
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawReportFrame();
   drawRoad();
   drawGrid();
 
   items.forEach((item) => {
-    if (item.type === "car") drawVehicle(item, "#0f766e", "CAR");
-    if (item.type === "truck") drawVehicle(item, "#b45309", "TRK");
-    if (item.type === "motorcycle") drawVehicle({ ...item, width: 62, height: 30 }, "#6d28d9", "MC");
+    if (isVehicleType(item.type)) drawVehicle({ ...item, width: widthByType(item.type), height: heightByType(item.type) }, vehicleColor(item.type), vehicleCode(item.type));
     if (item.type === "arrow") drawArrow(item);
     if (item.type === "skid") drawSkid(item);
     if (item.type === "cone") drawCone(item);
