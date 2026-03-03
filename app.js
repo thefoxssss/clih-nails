@@ -191,7 +191,6 @@ function startSimulation() {
     sliding: false,
     impactAt: 0,
     impactPoint: null,
-    impactPoints: [],
     units,
     unitA,
     unitB
@@ -220,15 +219,6 @@ function detectSimCollisions(units) {
     }
   }
   return collisions;
-}
-
-function mergeImpactPoints(existingPoints, nextCollisions) {
-  const merged = [...existingPoints];
-  nextCollisions.forEach((collision) => {
-    const alreadyTracked = merged.some((point) => Math.hypot(point.x - collision.x, point.y - collision.y) < 18);
-    if (!alreadyTracked) merged.push(collision);
-  });
-  return merged.slice(-16);
 }
 
 function resetSimulation() {
@@ -321,7 +311,6 @@ function tickSimulation() {
       simState.impactAt = performance.now();
     }
     simState.impactPoint = collisions[0];
-    simState.impactPoints = mergeImpactPoints(simState.impactPoints || [], collisions);
   }
 
   if (simState.crashed) {
