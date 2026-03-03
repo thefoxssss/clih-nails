@@ -32,8 +32,6 @@ const simUnitA = document.getElementById("simUnitA");
 const simUnitB = document.getElementById("simUnitB");
 const simSpeedA = document.getElementById("simSpeedA");
 const simSpeedB = document.getElementById("simSpeedB");
-const simMoveA = document.getElementById("simMoveA");
-const simMoveB = document.getElementById("simMoveB");
 const simPlayBtn = document.getElementById("simPlayBtn");
 const simResetBtn = document.getElementById("simResetBtn");
 
@@ -49,7 +47,6 @@ let vehicleCounter = 1;
 let simState = null;
 let simAnimationId = null;
 let lastTickTime = 0;
-let simRunToken = 0;
 
 function vehicleItems() {
   return items.filter((item) => ["car", "truck", "motorcycle"].includes(item.type));
@@ -111,12 +108,11 @@ function updateSimUnitSelectors() {
   simUnitB.disabled = vehicles.length < 2;
   simPlayBtn.disabled = vehicles.length < 2;
   simUnitA.value = vehicles.some((vehicle) => vehicle.id === previousA) ? previousA : vehicles[0].id;
-  const fallbackB = vehicles.find((vehicle) => vehicle.id !== simUnitA.value)?.id || vehicles[0].id;
+  const fallbackB = vehicles[1]?.id || vehicles[0].id;
   simUnitB.value = vehicles.some((vehicle) => vehicle.id === previousB && vehicle.id !== simUnitA.value)
     ? previousB
     : fallbackB;
 }
-
 
 function directionVector(direction) {
   if (direction === "east") return { x: 1, y: 0 };
@@ -143,12 +139,8 @@ function startSimulation() {
 
   const dirA = directionVector(simDirectionA.value);
   const dirB = directionVector(simDirectionB.value);
-  const speedA = simMoveA.checked ? speedFromSlider(simSpeedA.value) : 0;
-  const speedB = simMoveB.checked ? speedFromSlider(simSpeedB.value) : 0;
-  if (speedA <= 0 && speedB <= 0) {
-    alert("Enable movement for at least one unit to run the simulation.");
-    return;
-  }
+  const speedA = speedFromSlider(simSpeedA.value);
+  const speedB = speedFromSlider(simSpeedB.value);
 
   simState = {
     running: true,
@@ -189,8 +181,7 @@ function startSimulation() {
   };
 
   lastTickTime = performance.now();
-  simRunToken += 1;
-  tickSimulation(simRunToken);
+  tickSimulation();
 }
 
 function resetSimulation() {
@@ -229,10 +220,8 @@ function applyImpactPhysics(unitA, unitB) {
   unitB.vx -= tangentX * (bSpeed * sideSlip);
   unitB.vy -= tangentY * (bSpeed * sideSlip);
 
-  const cross = unitA.vx * unitB.vy - unitA.vy * unitB.vx;
-  const spinDir = cross >= 0 ? 1 : -1;
-  unitA.angularVelocity = spinDir * 0.085;
-  unitB.angularVelocity = -spinDir * 0.095;
+  unitA.angularVelocity = (Math.random() > 0.5 ? 1 : -1) * 0.08;
+  unitB.angularVelocity = (Math.random() > 0.5 ? 1 : -1) * 0.1;
 }
 
 function clampSimulationUnit(unit) {
@@ -244,8 +233,8 @@ function clampSimulationUnit(unit) {
   unit.y = Math.max(marginY, Math.min(canvas.height - marginY, unit.y));
 }
 
-function tickSimulation(runToken = simRunToken) {
-  if (runToken !== simRunToken || !simState || !simState.running) return;
+function tickSimulation() {
+  if (!simState || !simState.running) return;
 
   const now = performance.now();
   const dt = Math.min(1.6, (now - lastTickTime) / 16.667 || 1);
@@ -296,7 +285,7 @@ function tickSimulation(runToken = simRunToken) {
   clampSimulationUnit(simState.unitB);
 
   draw();
-  if (simState.running) simAnimationId = requestAnimationFrame(() => tickSimulation(runToken));
+  if (simState.running) simAnimationId = requestAnimationFrame(tickSimulation);
   else simAnimationId = null;
 }
 
