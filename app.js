@@ -47,9 +47,30 @@ let vehicleCounter = 1;
 let simState = null;
 let simAnimationId = null;
 let lastTickTime = 0;
+const vehicleSpecs = {
+  car: { width: 86, height: 42, mass: 1.3, code: "CAR", color: "#2563eb", collisionScale: 0.34 },
+  suv: { width: 92, height: 46, mass: 1.5, code: "SUV", color: "#4f46e5", collisionScale: 0.35 },
+  van: { width: 96, height: 46, mass: 1.6, code: "VAN", color: "#0d9488", collisionScale: 0.35 },
+  truck: { width: 98, height: 48, mass: 2.1, code: "TRK", color: "#475569", collisionScale: 0.36 },
+  semi: { width: 126, height: 48, mass: 3.2, code: "SEMI", color: "#7c3aed", collisionScale: 0.37 },
+  trailer: { width: 142, height: 44, mass: 1.8, code: "TRL", color: "#6b7280", collisionScale: 0.36 },
+  motorcycle: { width: 68, height: 24, mass: 0.55, code: "MC", color: "#dc2626", collisionScale: 0.28 }
+};
+
+function isVehicleType(type) {
+  return Boolean(vehicleSpecs[type]);
+}
+
+function vehicleCode(type) {
+  return vehicleSpecs[type]?.code || "VEH";
+}
+
+function vehicleColor(type) {
+  return vehicleSpecs[type]?.color || "#334155";
+}
 
 function vehicleItems() {
-  return items.filter((item) => ["car", "truck", "motorcycle"].includes(item.type));
+  return items.filter((item) => isVehicleType(item.type) && item.type !== "trailer");
 }
 
 function speedFromSlider(value) {
@@ -57,23 +78,20 @@ function speedFromSlider(value) {
 }
 
 function widthByType(type) {
-  if (type === "motorcycle") return 62;
-  return 86;
+  return vehicleSpecs[type]?.width;
 }
 
 function heightByType(type) {
-  if (type === "motorcycle") return 30;
-  return 42;
+  return vehicleSpecs[type]?.height;
 }
 
 function unitMass(type) {
-  if (type === "truck") return 1.8;
-  if (type === "motorcycle") return 0.8;
-  return 1.2;
+  return vehicleSpecs[type]?.mass || 1.2;
 }
 
 function collisionRadius(unit) {
-  return Math.hypot(unit.width, unit.height) * 0.35;
+  const scale = vehicleSpecs[unit.type]?.collisionScale || 0.35;
+  return Math.hypot(unit.width, unit.height) * scale;
 }
 
 function updateSimUnitSelectors() {
@@ -185,7 +203,6 @@ function startSimulation() {
 }
 
 function resetSimulation() {
-  simRunToken += 1;
   if (simAnimationId) cancelAnimationFrame(simAnimationId);
   simAnimationId = null;
   simState = null;
@@ -199,29 +216,41 @@ function applyImpactPhysics(unitA, unitB) {
   const normalX = nx / distance;
   const normalY = ny / distance;
 
-  const relativeVelocityX = unitA.vx - unitB.vx;
-  const relativeVelocityY = unitA.vy - unitB.vy;
-  const closingSpeed = relativeVelocityX * normalX + relativeVelocityY * normalY;
-  const restitution = 0.25;
-  const impulse = (-(1 + restitution) * closingSpeed) / ((1 / unitA.mass) + (1 / unitB.mass));
+  const relativeVelocityX = unitB.vx - unitA.vx;
+  const relativeVelocityY = unitB.vy - unitA.vy;
+  const speedAlongNormal = relativeVelocityX * normalX + relativeVelocityY * normalY;
+  if (speedAlongNormal > 0) return;
 
-  unitA.vx += (impulse / unitA.mass) * normalX;
-  unitA.vy += (impulse / unitA.mass) * normalY;
-  unitB.vx -= (impulse / unitB.mass) * normalX;
-  unitB.vy -= (impulse / unitB.mass) * normalY;
+  const restitution = 0.16;
+  const impulse = (-(1 + restitution) * speedAlongNormal) / ((1 / unitA.mass) + (1 / unitB.mass));
+
+  unitA.vx -= (impulse / unitA.mass) * normalX;
+  unitA.vy -= (impulse / unitA.mass) * normalY;
+  unitB.vx += (impulse / unitB.mass) * normalX;
+  unitB.vy += (impulse / unitB.mass) * normalY;
 
   const tangentX = -normalY;
   const tangentY = normalX;
-  const sideSlip = 0.55;
-  const aSpeed = Math.hypot(unitA.vx, unitA.vy);
-  const bSpeed = Math.hypot(unitB.vx, unitB.vy);
-  unitA.vx += tangentX * (aSpeed * sideSlip);
-  unitA.vy += tangentY * (aSpeed * sideSlip);
-  unitB.vx -= tangentX * (bSpeed * sideSlip);
-  unitB.vy -= tangentY * (bSpeed * sideSlip);
+  const relativeTangentSpeed = relativeVelocityX * tangentX + relativeVelocityY * tangentY;
+  const frictionImpulse = (relativeTangentSpeed * 0.38) / ((1 / unitA.mass) + (1 / unitB.mass));
 
-  unitA.angularVelocity = (Math.random() > 0.5 ? 1 : -1) * 0.08;
-  unitB.angularVelocity = (Math.random() > 0.5 ? 1 : -1) * 0.1;
+  unitA.vx += (frictionImpulse / unitA.mass) * tangentX;
+  unitA.vy += (frictionImpulse / unitA.mass) * tangentY;
+  unitB.vx -= (frictionImpulse / unitB.mass) * tangentX;
+  unitB.vy -= (frictionImpulse / unitB.mass) * tangentY;
+
+  const spin = Math.max(0.05, Math.min(0.12, Math.abs(relativeTangentSpeed) * 0.03));
+  unitA.angularVelocity = -Math.sign(relativeTangentSpeed || 1) * spin;
+  unitB.angularVelocity = Math.sign(relativeTangentSpeed || 1) * spin * 1.15;
+
+  const overlap = collisionRadius(unitA) + collisionRadius(unitB) - distance;
+  if (overlap > 0) {
+    const correction = overlap / 2 + 0.5;
+    unitA.x -= normalX * correction;
+    unitA.y -= normalY * correction;
+    unitB.x += normalX * correction;
+    unitB.y += normalY * correction;
+  }
 }
 
 function clampSimulationUnit(unit) {
@@ -345,6 +374,7 @@ function rotateSelected(direction, snapStep = false) {
   if (!item) return;
   saveSnapshot();
   const step = snapStep ? Math.PI / 12 : 0.12;
+  if (item.type === "trailer") item.attachedTo = null;
   item.rotation += direction * step;
   draw();
 }
@@ -375,6 +405,40 @@ function duplicateSelected() {
   items.push(clone);
   selectedId = clone.id;
   draw();
+}
+
+function nearestSemiFor(point) {
+  const semis = items.filter((item) => item.type === "semi");
+  if (!semis.length) return null;
+  let nearest = null;
+  let minDistance = Infinity;
+  semis.forEach((semi) => {
+    const d = Math.hypot(semi.x - point.x, semi.y - point.y);
+    if (d < minDistance) {
+      minDistance = d;
+      nearest = semi;
+    }
+  });
+  return minDistance < 220 ? nearest : null;
+}
+
+function attachTrailerToSemi(trailer, semi) {
+  if (!trailer || !semi) return;
+  trailer.attachedTo = semi.id;
+  trailer.hitchDistance = (widthByType(semi.type) + widthByType("trailer")) / 2 + 14;
+}
+
+function syncAttachedTrailers() {
+  items.forEach((item) => {
+    if (item.type !== "trailer" || !item.attachedTo) return;
+    const semi = items.find((entry) => entry.id === item.attachedTo);
+    if (!semi) return;
+    const hitchDistance = item.hitchDistance || (widthByType(semi.type) + widthByType("trailer")) / 2 + 14;
+    const angle = semi.rotation || 0;
+    item.rotation = angle;
+    item.x = semi.x - Math.cos(angle) * hitchDistance;
+    item.y = semi.y - Math.sin(angle) * hitchDistance;
+  });
 }
 
 function downloadJson() {
@@ -479,6 +543,7 @@ exportBtn.addEventListener("click", () => {
     const item = selectedItem();
     if (!item) return;
     saveSnapshot();
+    if (item.type === "trailer") item.attachedTo = null;
     item.x = Number(inspectorX.value) || item.x;
     item.y = Number(inspectorY.value) || item.y;
     item.rotation = ((Number(inspectorRotation.value) || 0) * Math.PI) / 180;
@@ -515,7 +580,7 @@ canvas.addEventListener("mousedown", (event) => {
   } else if (activeTool === "cone") {
     items.push({ id: uid(), type: "cone", x: snap(pos.x), y: snap(pos.y), width: 22, height: 22, rotation: 0 });
   } else {
-    items.push({
+    const vehicle = {
       id: uid(),
       type: activeTool,
       x: snap(pos.x),
@@ -523,10 +588,18 @@ canvas.addEventListener("mousedown", (event) => {
       width: widthByType(activeTool),
       height: heightByType(activeTool),
       rotation: 0,
-      label: `V${vehicleCounter++}`
-    });
+      label: activeTool === "trailer" ? `TRL-${vehicleCounter}` : `V${vehicleCounter++}`
+    };
+
+    if (activeTool === "trailer") {
+      const nearestSemi = nearestSemiFor(vehicle);
+      if (nearestSemi) attachTrailerToSemi(vehicle, nearestSemi);
+    }
+
+    items.push(vehicle);
   }
 
+  syncAttachedTrailers();
   draw();
 });
 
@@ -535,6 +608,7 @@ canvas.addEventListener("mousemove", (event) => {
   const pos = pointer(event);
   const item = selectedItem();
   if (!item) return;
+  if (item.type === "trailer") item.attachedTo = null;
   item.x = snap(pos.x - dragOffset.x);
   item.y = snap(pos.y - dragOffset.y);
   draw();
@@ -574,6 +648,7 @@ window.addEventListener("keydown", (event) => {
   const step = event.shiftKey ? 10 : 2;
   if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
     saveSnapshot();
+    if (item.type === "trailer") item.attachedTo = null;
     if (event.key === "ArrowUp") item.y = snap(item.y - step);
     if (event.key === "ArrowDown") item.y = snap(item.y + step);
     if (event.key === "ArrowLeft") item.x = snap(item.x - step);
@@ -604,22 +679,37 @@ function pointer(event) {
 function hitTest(pos) {
   for (let i = items.length - 1; i >= 0; i--) {
     const item = items[i];
-    const bounds = itemBounds(item);
-    if (pos.x >= bounds.left && pos.x <= bounds.right && pos.y >= bounds.top && pos.y <= bounds.bottom) {
-      return item;
-    }
+    const width = widthByType(item.type) || item.width || 100;
+    const height = heightByType(item.type) || item.height || 24;
+    const angle = -(item.rotation || 0);
+    const dx = pos.x - item.x;
+    const dy = pos.y - item.y;
+    const localX = dx * Math.cos(angle) - dy * Math.sin(angle);
+    const localY = dx * Math.sin(angle) + dy * Math.cos(angle);
+    if (Math.abs(localX) <= width / 2 && Math.abs(localY) <= height / 2) return item;
   }
   return null;
 }
 
 function itemBounds(item) {
-  const width = item.width || 100;
-  const height = item.height || 24;
+  const width = widthByType(item.type) || item.width || 100;
+  const height = heightByType(item.type) || item.height || 24;
+  const angle = item.rotation || 0;
+  const corners = [
+    { x: -width / 2, y: -height / 2 },
+    { x: width / 2, y: -height / 2 },
+    { x: width / 2, y: height / 2 },
+    { x: -width / 2, y: height / 2 }
+  ].map((point) => ({
+    x: item.x + point.x * Math.cos(angle) - point.y * Math.sin(angle),
+    y: item.y + point.x * Math.sin(angle) + point.y * Math.cos(angle)
+  }));
+
   return {
-    left: item.x - width / 2,
-    right: item.x + width / 2,
-    top: item.y - height / 2,
-    bottom: item.y + height / 2
+    left: Math.min(...corners.map((corner) => corner.x)),
+    right: Math.max(...corners.map((corner) => corner.x)),
+    top: Math.min(...corners.map((corner) => corner.y)),
+    bottom: Math.max(...corners.map((corner) => corner.y))
   };
 }
 
@@ -797,23 +887,84 @@ function drawVehicle(item, color, label) {
   ctx.save();
   ctx.translate(item.x, item.y);
   ctx.rotate(item.rotation || 0);
-  const bodyGrad = ctx.createLinearGradient(-item.width / 2, -item.height / 2, item.width / 2, item.height / 2);
-  bodyGrad.addColorStop(0, lighten(color, 0.24));
-  bodyGrad.addColorStop(1, color);
-  ctx.fillStyle = bodyGrad;
-  ctx.strokeStyle = "#0c1118";
-  ctx.lineWidth = 2;
-  ctx.shadowColor = "rgba(0, 0, 0, 0.35)";
-  ctx.shadowBlur = 12;
-  ctx.shadowOffsetY = 3;
-  ctx.beginPath();
-  ctx.roundRect(-item.width / 2, -item.height / 2, item.width, item.height, 8);
-  ctx.fill();
-  ctx.shadowColor = "transparent";
-  ctx.stroke();
 
-  ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
-  ctx.fillRect(-item.width / 2 + 8, -item.height / 2 + 6, item.width - 16, 8);
+  if (item.type === "motorcycle") {
+    ctx.strokeStyle = "#0b0f16";
+    ctx.lineWidth = 2.5;
+    ctx.fillStyle = "#111827";
+    ctx.beginPath();
+    ctx.arc(-item.width * 0.28, 0, item.height * 0.34, 0, Math.PI * 2);
+    ctx.arc(item.width * 0.28, 0, item.height * 0.34, 0, Math.PI * 2);
+    ctx.fill();
+
+    const bikeGrad = ctx.createLinearGradient(-item.width / 2, 0, item.width / 2, 0);
+    bikeGrad.addColorStop(0, lighten(color, 0.3));
+    bikeGrad.addColorStop(1, color);
+    ctx.fillStyle = bikeGrad;
+    ctx.beginPath();
+    ctx.roundRect(-item.width * 0.2, -item.height * 0.2, item.width * 0.4, item.height * 0.4, 6);
+    ctx.fill();
+
+    ctx.strokeStyle = "#e2e8f0";
+    ctx.beginPath();
+    ctx.moveTo(item.width * 0.05, -item.height * 0.1);
+    ctx.lineTo(item.width * 0.34, -item.height * 0.26);
+    ctx.moveTo(-item.width * 0.06, item.height * 0.08);
+    ctx.lineTo(-item.width * 0.3, item.height * 0.24);
+    ctx.stroke();
+
+    ctx.fillStyle = "#f8fafc";
+    ctx.font = "700 11px Segoe UI, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(`${item.label || "V?"} ${label}`, 0, -item.height * 0.75);
+    ctx.restore();
+    return;
+  }
+
+  if (item.type === "trailer") {
+    const trailerGrad = ctx.createLinearGradient(-item.width / 2, -item.height / 2, item.width / 2, item.height / 2);
+    trailerGrad.addColorStop(0, lighten(color, 0.22));
+    trailerGrad.addColorStop(1, color);
+    ctx.fillStyle = trailerGrad;
+    ctx.strokeStyle = "#111827";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(-item.width / 2, -item.height / 2, item.width, item.height, 8);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,0.2)";
+    ctx.fillRect(-item.width / 2 + 8, -item.height / 2 + 5, item.width - 16, 7);
+  } else {
+    const bodyGrad = ctx.createLinearGradient(-item.width / 2, -item.height / 2, item.width / 2, item.height / 2);
+    bodyGrad.addColorStop(0, lighten(color, 0.24));
+    bodyGrad.addColorStop(1, color);
+    ctx.fillStyle = bodyGrad;
+    ctx.strokeStyle = "#0c1118";
+    ctx.lineWidth = 2;
+    ctx.shadowColor = "rgba(0, 0, 0, 0.35)";
+    ctx.shadowBlur = 12;
+    ctx.shadowOffsetY = 3;
+    ctx.beginPath();
+    ctx.roundRect(-item.width / 2, -item.height / 2, item.width, item.height, 8);
+    ctx.fill();
+    ctx.shadowColor = "transparent";
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+    ctx.fillRect(-item.width / 2 + 8, -item.height / 2 + 6, item.width - 16, 8);
+
+    if (item.type === "semi") {
+      ctx.fillStyle = "#1f2937";
+      ctx.fillRect(-item.width / 2 + 10, -item.height / 2 + 8, item.width * 0.28, item.height - 16);
+      ctx.strokeStyle = "#94a3b8";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-item.width / 2 + item.width * 0.28, 0);
+      ctx.lineTo(-item.width / 2 + item.width * 0.46, 0);
+      ctx.stroke();
+    }
+  }
 
   const wheelW = Math.max(8, Math.round(item.width * 0.12));
   const wheelH = Math.max(5, Math.round(item.height * 0.2));
@@ -822,6 +973,15 @@ function drawVehicle(item, color, label) {
   ctx.fillRect(item.width / 2 - wheelW - 8, -item.height / 2 - 2, wheelW, wheelH);
   ctx.fillRect(-item.width / 2 + 8, item.height / 2 - wheelH + 2, wheelW, wheelH);
   ctx.fillRect(item.width / 2 - wheelW - 8, item.height / 2 - wheelH + 2, wheelW, wheelH);
+
+  if (item.type === "trailer") {
+    ctx.strokeStyle = "#111827";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-item.width / 2 - 14, 0);
+    ctx.lineTo(-item.width / 2 + 2, 0);
+    ctx.stroke();
+  }
 
   ctx.fillStyle = "#f9fbff";
   ctx.font = "700 12px Segoe UI, sans-serif";
@@ -1023,6 +1183,7 @@ function drawSimulation() {
 }
 
 function draw() {
+  syncAttachedTrailers();
   updateSimUnitSelectors();
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawReportFrame();
