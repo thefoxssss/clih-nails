@@ -4,7 +4,7 @@ A lightweight browser app for making car crash diagrams similar to police collis
 
 ## Features
 - Road templates: 4-way intersection, straight road, and T-junction
-- Place cars, trucks, motorcycles, direction arrows, skid marks, cones, and labels
+- Place patrol cars, trucks, semis, SUVs, vans, motorcycles, direction arrows, skid marks, cones, and labels
 - Select and drag objects
 - Rotate selected objects using mouse wheel (`Alt` for 15° snapping)
 - Delete selected object with `Delete` / `Backspace`

@@ -520,8 +520,8 @@ canvas.addEventListener("mousedown", (event) => {
       type: activeTool,
       x: snap(pos.x),
       y: snap(pos.y),
-      width: 86,
-      height: 42,
+      width: widthByType(activeTool),
+      height: heightByType(activeTool),
       rotation: 0,
       label: `V${vehicleCounter++}`
     });
@@ -1030,9 +1030,7 @@ function draw() {
   drawGrid();
 
   items.forEach((item) => {
-    if (item.type === "car") drawVehicle(item, "#0f766e", "CAR");
-    if (item.type === "truck") drawVehicle(item, "#b45309", "TRK");
-    if (item.type === "motorcycle") drawVehicle({ ...item, width: 62, height: 30 }, "#6d28d9", "MC");
+    if (isVehicleType(item.type)) drawVehicle({ ...item, width: widthByType(item.type), height: heightByType(item.type) }, vehicleColor(item.type), vehicleCode(item.type));
     if (item.type === "arrow") drawArrow(item);
     if (item.type === "skid") drawSkid(item);
     if (item.type === "cone") drawCone(item);
