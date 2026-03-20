@@ -1,0 +1,7 @@
+{
+  "name": "clih-nails",
+  "private": true,
+  "scripts": {
+    "build": "exit 0"
+  }
+}
