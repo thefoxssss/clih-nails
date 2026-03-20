@@ -7,156 +7,43 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="app">
-    <header class="topbar">
-      <div>
-        <h1>Police Crash Report Diagram</h1>
-        <p>Build report-style scene diagrams with labeled units, controls, and evidence marks.</p>
+  <div id="game-container">
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="hud">
+      <div id="speedDisplay">Speed: 0 mph</div>
+      <div class="health-row">
+        <span>Player</span>
+        <div class="health-bar-bg"><div id="playerHealth" class="health-bar-fill"></div></div>
       </div>
-      <div class="actions">
-        <button id="undoBtn">Undo</button>
-        <button id="saveBtn">Save JSON</button>
-        <button id="loadBtn">Load JSON</button>
-        <button id="clearBtn">Clear</button>
-        <button id="exportBtn" class="primary">Export PNG</button>
-        <input id="loadFileInput" type="file" accept="application/json" hidden>
+      <div class="health-row" id="targetHealthRow">
+        <span>Target</span>
+        <div class="health-bar-bg"><div id="targetHealth" class="health-bar-fill"></div></div>
       </div>
-    </header>
+    </div>
+    <div id="storyModal" class="modal">
+      <h1 id="storyTitle"></h1>
+      <p id="storyText"></p>
+      <button id="startLevelBtn" class="primary">Start Mission</button>
+    </div>
 
-    <aside class="panel">
-      <h2>Report Header</h2>
-      <div class="report-grid">
-        <label for="reportNumber">Report #</label>
-        <input id="reportNumber" type="text" value="2026-001284">
-        <label for="reportDate">Date</label>
-        <input id="reportDate" type="date">
-        <label for="reportLocation">Location</label>
-        <input id="reportLocation" type="text" value="Main St / 8th Ave">
-        <label for="officerName">Officer</label>
-        <input id="officerName" type="text" value="Ofc. J. Miller #417">
-      </div>
+    <div id="gameOverModal" class="modal hidden">
+      <h1>Wasted</h1>
+      <p>Your vehicle is totaled.</p>
+      <button id="restartGameBtn" class="primary">Restart Game</button>
+    </div>
 
-      <h2>Tools</h2>
-      <div class="tool-grid" id="toolGrid">
-        <button class="tool active" data-tool="select">Select / Move</button>
-        <button class="tool" data-tool="car">Patrol Car</button>
-        <button class="tool" data-tool="truck">Truck</button>
-        <button class="tool" data-tool="semi">Semi Truck</button>
-        <button class="tool" data-tool="trailer">Trailer (optional)</button>
-        <button class="tool" data-tool="suv">SUV</button>
-        <button class="tool" data-tool="van">Van</button>
-        <button class="tool" data-tool="motorcycle">Motorcycle</button>
-        <button class="tool" data-tool="arrow">Direction Arrow</button>
-        <button class="tool" data-tool="skid">Skid Mark</button>
-        <button class="tool" data-tool="text">Text Label</button>
-        <button class="tool" data-tool="cone">Evidence Cone</button>
-      </div>
+    <div id="levelCompleteModal" class="modal hidden">
+      <h1>Target Neutralized</h1>
+      <p>Good work, officer.</p>
+      <button id="nextLevelBtn" class="primary">Continue</button>
+    </div>
 
-      <h2>Selected Unit</h2>
-      <div class="control-row">
-        <button id="rotateLeftBtn">Rotate ⟲</button>
-        <button id="rotateRightBtn">Rotate ⟳</button>
-      </div>
-      <div class="control-row">
-        <button id="bringFrontBtn">Bring Front</button>
-        <button id="sendBackBtn">Send Back</button>
-      </div>
-      <div class="control-row single">
-        <button id="duplicateBtn">Duplicate</button>
-      </div>
-
-      <h2>Precision</h2>
-      <div class="control-row">
-        <label class="checkbox-row"><input id="showGrid" type="checkbox" checked> Show grid</label>
-        <label class="checkbox-row"><input id="snapGrid" type="checkbox"> Snap to grid</label>
-      </div>
-      <label for="gridSize">Grid size</label>
-      <input id="gridSize" type="number" min="10" max="80" step="2" value="24">
-
-      <h2>Inspector</h2>
-      <div class="report-grid">
-        <label for="inspectorX">X</label>
-        <input id="inspectorX" type="number" step="1">
-        <label for="inspectorY">Y</label>
-        <input id="inspectorY" type="number" step="1">
-        <label for="inspectorRotation">Angle°</label>
-        <input id="inspectorRotation" type="number" step="1">
-        <label for="inspectorLabel">Label/Text</label>
-        <input id="inspectorLabel" type="text" placeholder="V1 or text note">
-      </div>
-
-      <h2>Road setup</h2>
-      <label for="roadType">Road type</label>
-      <select id="roadType">
-        <option value="intersection">4-way intersection</option>
-        <option value="straight">Straight road</option>
-        <option value="t-junction">T-junction</option>
-      </select>
-
-      <label for="weather">Weather</label>
-      <select id="weather">
-        <option>Clear</option>
-        <option>Rain</option>
-        <option>Snow</option>
-        <option>Fog</option>
-      </select>
-
-      <label for="light">Light</label>
-      <select id="light">
-        <option>Daylight</option>
-        <option>Dusk</option>
-        <option>Night</option>
-      </select>
-
-
-      <p class="hint">Tip: Shift + arrow keys nudges by 10px. Press D to duplicate. Hold Alt while rotating with the wheel to snap to 15° increments. Drop a trailer near a semi to auto-hitch.</p>
-    </aside>
-
-    <main class="canvas-wrap">
-      <div class="canvas-stage">
-        <canvas id="diagramCanvas" width="1100" height="720"></canvas>
-      </div>
-
-      <aside class="sim-panel">
-        <h2>Simple Simulation</h2>
-        <label for="simUnitA">Unit 1 (placed vehicle)</label>
-        <select id="simUnitA"></select>
-
-        <label for="simDirectionA">Unit 1 direction</label>
-        <select id="simDirectionA">
-          <option value="east">West → East</option>
-          <option value="west">East → West</option>
-          <option value="south">North → South</option>
-          <option value="north">South → North</option>
-        </select>
-
-        <label for="simSpeedA">Unit 1 speed</label>
-        <input id="simSpeedA" type="range" min="15" max="95" step="1" value="48">
-        <label class="checkbox-row"><input id="simMoveA" type="checkbox" checked> Unit 1 moving</label>
-
-        <label for="simUnitB">Unit 2 (placed vehicle)</label>
-        <select id="simUnitB"></select>
-
-        <label for="simDirectionB">Unit 2 direction</label>
-        <select id="simDirectionB">
-          <option value="south">North → South</option>
-          <option value="north">South → North</option>
-          <option value="east">West → East</option>
-          <option value="west">East → West</option>
-        </select>
-
-        <label for="simSpeedB">Unit 2 speed</label>
-        <input id="simSpeedB" type="range" min="15" max="95" step="1" value="52">
-        <label class="checkbox-row"><input id="simMoveB" type="checkbox" checked> Unit 2 moving</label>
-
-        <div class="control-row">
-          <button id="simPlayBtn" class="primary">▶ Play wreck</button>
-          <button id="simResetBtn">Reset sim</button>
-        </div>
-      </aside>
-    </main>
+    <div id="gameWonModal" class="modal hidden">
+      <h1>All Targets Neutralized</h1>
+      <p>You have successfully completed all missions and cleaned up the streets. Excellent work, Officer!</p>
+      <button id="playAgainBtn" class="primary">Play Again</button>
+    </div>
   </div>
-
   <script src="app.js"></script>
 </body>
 </html>
